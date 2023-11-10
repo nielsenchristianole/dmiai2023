@@ -12,15 +12,13 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import torch
+from models.dtos import LunarLanderPredictRequestDto, LunarLanderPredictResponseDto
+from agent.base_agent import BaselineAgent
+from loguru import logger
 
-# --- Welcome to your Emily API! --- #
-# See the README for guides on how to test it.
 
-# Your API endpoints under http://yourdomain/api/...
-# are accessible from any origin by default.
-# Make sure to restrict access below to origins you
-# trust before deploying your API to production.
-
+agent = BaselineAgent()
 
 app = FastAPI()
 
@@ -37,6 +35,30 @@ app.add_middleware(
 )
 
 app.include_router(router.router, tags=['Lunar Lander'])
+
+
+@app.post('/predict', response_model=LunarLanderPredictResponseDto)
+def predict_closing_price(request: LunarLanderPredictRequestDto):
+
+    reward = f"{request.reward:> 4}"
+    is_terminal = f"{request.is_terminal:> 5}"
+    total_reward = f"{request.total_reward:> 6}"
+    game_ticks = f"{request.game_ticks:> 4}"
+
+    logger.info(f"{reward=}, {is_terminal=}, {total_reward=}, {game_ticks=}")
+
+    if request.is_terminal:
+        # should return any action for new game to start
+        return LunarLanderPredictResponseDto(
+            action=0
+        )
+
+    state = torch.FloatTensor(request.observation, device=agent.device)
+    action: torch.Tensor = agent.predict(state)
+
+    return LunarLanderPredictResponseDto(
+        action=action.item()
+    )
 
 
 @app.get('/api')
