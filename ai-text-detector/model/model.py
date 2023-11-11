@@ -103,10 +103,10 @@ class BERTClassifier(torch.nn.Module):
 def train_bart(
         epochs: int,
         training_set: DataLoader,
-        validation_set: DataLoader,
         model: nn.Module,
         loss_fn: nn.BCEWithLogitsLoss,
         optimizer: torch.optim.Optimizer,
+        validation_set: DataLoader=None,
         *,
         verbose: bool=True
     ):
@@ -146,31 +146,32 @@ def train_bart(
             train_loop.set_description(f'Epoch={epoch+1}/{epochs}')
             train_loop.set_postfix(loss=loss.item(), acc=accuracy)
         
-        model.eval()
-        val_loop = tqdm.tqdm(
-            enumerate(validation_set),
-            total=len(validation_set),
-            leave=False,
-            disable=not verbose
-        )
-        for batch_num, batch in val_loop:
-            label: torch.Tensor = batch.pop('target').unsqueeze(1)
-            
-            pred = model(
-                **batch
+        if validation_set is not None:
+            model.eval()
+            val_loop = tqdm.tqdm(
+                enumerate(validation_set),
+                total=len(validation_set),
+                leave=False,
+                disable=not verbose
             )
-            label = label.type_as(pred)
-            loss = loss_fn(pred, label)
-            
-            pred = np.where(pred >= 0, 1, 0)
+            for batch_num, batch in val_loop:
+                label: torch.Tensor = batch.pop('target').unsqueeze(1)
+                
+                pred = model(
+                    **batch
+                )
+                label = label.type_as(pred)
+                loss = loss_fn(pred, label)
+                
+                pred = np.where(pred >= 0, 1, 0)
 
-            num_correct = sum(1 for a, b in zip(pred, label) if a[0] == b[0])
-            num_samples = pred.shape[0]
-            accuracy = num_correct / num_samples
-    
-            val_loop.set_description(f'Epoch={epoch+1}/{epochs}')
-            val_loop.set_postfix(loss=loss.item(), acc=accuracy)
+                num_correct = sum(1 for a, b in zip(pred, label) if a[0] == b[0])
+                num_samples = pred.shape[0]
+                accuracy = num_correct / num_samples
+        
+                val_loop.set_description(f'Epoch={epoch+1}/{epochs}')
+                val_loop.set_postfix(loss=loss.item(), acc=accuracy)
 
-            print(f'Epoch={epoch+1}/{epochs} | Loss={loss.item()} | Accuracy={accuracy}')
+                print(f'Epoch={epoch+1}/{epochs} | Loss={loss.item()} | Accuracy={accuracy}')
 
     return model
