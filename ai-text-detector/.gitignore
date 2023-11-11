@@ -164,13 +164,15 @@ cython_debug/
 
 configurations/dev/docker-compose.emily.yml
 configurations/dev/docker-compose.mounts.yml
-deployments/local/deployment.json
+deployments/
 environments/dev/.emily.env
 docker-compose.dev.yml
 emily-config.json
 model/bert_weights/
 model/trained_models/
 test.ipynb
-
-# secrets
+configurations/
+environments/
+data/val_data.tsv
+Dockerfile
 secrets/

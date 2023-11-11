@@ -1,2 +1,5 @@
 emily.log
 
+
+.git/**/*
+.dvc/**/*
