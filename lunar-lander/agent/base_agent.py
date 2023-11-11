@@ -1,13 +1,12 @@
-from abc import ABC, abstractclassmethod
-from typing import List
+
 
 import torch
 import torch.nn as nn
 
-from models.dtos import LunarLanderPredictRequestDto, LunarLanderPredictResponseDto
+# from models.dtos import LunarLanderPredictRequestDto, LunarLanderPredictResponseDto
 
 
-class BaselineAgent(ABC, nn.Module):
+class BaselineAgent(nn.Module):
 
     def __init__(self, device: str=None) -> None:
         super().__init__()

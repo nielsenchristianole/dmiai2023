@@ -1,3 +1,6 @@
 gymnasium[box2d]
 numpy
 pygame
+
+# ---- Added by the Emily CLI ----
+torch
