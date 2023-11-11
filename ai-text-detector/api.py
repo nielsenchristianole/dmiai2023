@@ -19,9 +19,11 @@ from loguru import logger
 import pandas as pd
 
 
-SAVE_INPUTS = True
-MODEL_WEIGHTS_PATH = 'model/trained_models/best.pt'
-INPUT_SAVE_PATH = 'data/val_data.tsv'
+SAVE_INPUTS = False
+MODEL_WEIGHTS_PATH = './model/trained_models/best.pt'
+INPUT_SAVE_PATH = './data/val_data.tsv'
+LOG_DISTINATION = './data/logs.log'
+
 
 text_classifier = BERTClassifier(download_weights=False)
 text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH))
@@ -31,6 +33,10 @@ request_converter = ConvertRequest(100)
 
 
 app = FastAPI()
+
+log_format = "<level>{level: <8}</level> | <b>{message}</b> | {file}"
+logger.add(LOG_DISTINATION, colorize=False, format=log_format, enqueue=True)
+
 
 initialize_logging()
 initialize_logging_middleware(app)
@@ -52,7 +58,7 @@ def predict(request: PredictRequestDto):
 
     if SAVE_INPUTS:
         for idx, text in enumerate(request.answers):
-            logger.info(f"{idx:> 4}: {text}")
+            logger.success(text)
         df = pd.DataFrame(request.answers)
         df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
     
@@ -60,7 +66,7 @@ def predict(request: PredictRequestDto):
     preds = text_classifier.predict(**model_input)
     preds = preds.cpu().squeeze().detach().numpy().tolist()
 
-    logger.info(', '.join(map(str, preds)))
+    logger.info('Preds: ' + ', '.join(map(str, preds)))
 
     return PredictResponseDto(
         class_ids=preds
