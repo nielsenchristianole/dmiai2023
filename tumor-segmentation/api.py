@@ -13,13 +13,13 @@ from utilities.exceptions import configure_exception_handlers
 import router
 
 
-# --- Welcome to your Emily API! --- #
-# See the README for guides on how to test it.
+import os
+from utils import encode_request, decode_request
+from models.dtos import PredictRequestDto, PredictResponseDto
+from model.baseline_model import BaselineModel
 
-# Your API endpoints under http://yourdomain/api/...
-# are accessible from any origin by default.
-# Make sure to restrict access below to origins you
-# trust before deploying your API to production.
+baseline_model = BaselineModel(label_dir='./data/patients/labels')
+
 
 
 app = FastAPI()
@@ -38,6 +38,18 @@ app.add_middleware(
 
 app.include_router(router.router, tags=['Tumor Segmentation'])
 
+
+@app.post('baseline/predict')
+def baseline_predict(request: PredictRequestDto):
+
+    img = decode_request(request)
+    pred = baseline_model.predict(img)
+    encoded_img = encode_request(pred)
+
+    return PredictResponseDto(
+        img=encoded_img
+    )
+    
 
 @app.get('/api')
 def hello():
