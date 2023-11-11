@@ -5,21 +5,27 @@ from starlette.responses import HTMLResponse
 
 from static.render import render
 from utilities.environment import Environment
-from utilities.logging.config import (initialize_logging,
-                                      initialize_logging_middleware)
+from utilities.logging.config import initialize_logging, initialize_logging_middleware
 from utilities.utilities import get_uptime
 from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import torch
+from model.model import BERTClassifier
+from model.data_loader import ConvertRequest
+from models.dtos import PredictRequestDto, PredictResponseDto
+from loguru import logger
 
-# --- Welcome to your Emily API! --- #
-# See the README for guides on how to test it.
 
-# Your API endpoints under http://yourdomain/api/...
-# are accessible from any origin by default.
-# Make sure to restrict access below to origins you
-# trust before deploying your API to production.
+SAVE_INPUTS = False
+MODEL_WEIGHTS_PATH = 'model/trained_models/best.pt'
+
+text_classifier = BERTClassifier(download_weights=False)
+text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH))
+text_classifier.eval()
+
+request_converter = ConvertRequest(100)
 
 
 app = FastAPI()
@@ -37,6 +43,26 @@ app.add_middleware(
 )
 
 app.include_router(router.router, tags=['AI Text Detector'])
+
+
+@app.post('/bert/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+
+    if SAVE_INPUTS:
+        for idx, text in enumerate(request.answers):
+            logger.info(f"{idx:> 4}: {text}")
+        
+        pass
+    
+    model_input = request_converter(request=request.answers)
+    preds = text_classifier.predict(**model_input)
+    preds = preds.cpu().squeeze().detach().numpy().tolist()
+
+    logger.info(', '.join(map(str, preds)))
+
+    return PredictResponseDto(
+        class_ids=preds
+    )
 
 
 @app.get('/api')
