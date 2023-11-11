@@ -2,3 +2,4 @@ transformers
 ipykernel
 jupyter
 torch
+beautifulsoup4
