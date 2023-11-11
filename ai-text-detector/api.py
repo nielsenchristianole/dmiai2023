@@ -16,10 +16,12 @@ from model.model import BERTClassifier
 from model.data_loader import ConvertRequest
 from models.dtos import PredictRequestDto, PredictResponseDto
 from loguru import logger
+import pandas as pd
 
 
-SAVE_INPUTS = False
+SAVE_INPUTS = True
 MODEL_WEIGHTS_PATH = 'model/trained_models/best.pt'
+INPUT_SAVE_PATH = 'data/val_data.tsv'
 
 text_classifier = BERTClassifier(download_weights=False)
 text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH))
@@ -51,8 +53,8 @@ def predict(request: PredictRequestDto):
     if SAVE_INPUTS:
         for idx, text in enumerate(request.answers):
             logger.info(f"{idx:> 4}: {text}")
-        
-        pass
+        df = pd.DataFrame(request.answers)
+        df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
     
     model_input = request_converter(request=request.answers)
     preds = text_classifier.predict(**model_input)
