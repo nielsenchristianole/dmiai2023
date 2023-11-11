@@ -171,3 +171,6 @@ emily-config.json
 model/bert_weights/
 model/trained_models/
 test.ipynb
+
+# secrets
+secrets/

@@ -1,0 +1,4 @@
+# python 3.10
+# Require vs tools 2022
+datasets
+apache_beam
