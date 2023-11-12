@@ -170,3 +170,4 @@ docker-compose.emily.yml
 docker-compose.mounts.yml
 deployment.json
 .emily.env
+agent/model_checkpoints/
