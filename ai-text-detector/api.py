@@ -19,7 +19,7 @@ from loguru import logger
 import pandas as pd
 
 
-SAVE_INPUTS = False
+SAVE_INPUTS = True
 MODEL_WEIGHTS_PATH = './model/trained_models/best.pt'
 INPUT_SAVE_PATH = './data/val_data.tsv'
 LOG_DISTINATION = './data/logs.log'
