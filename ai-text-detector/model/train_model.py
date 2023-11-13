@@ -13,13 +13,19 @@ if __name__ == '__main__':
     MODEL_DIR = './model/trained_models/'
     os.makedirs(MODEL_DIR, exist_ok=True)
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        prog='Train bert classifier',
+        description='Train a bert classifier on a dataset of text and labels',
+        epilog='Use ctrl+c to stop training and save the model early'
+    )
 
-    parser.add_argument('-e', '--epochs', type=int, default=15)
-    parser.add_argument('-o', '--model_name', type=str, default='best.pt')
-    parser.add_argument('-d', '--dataset_name', type=str, default='data_version_0.csv')
-    parser.add_argument('-c', '--context_length', type=int, default=512)
+    parser.add_argument('-e', '--epochs', type=int, help='Number of epochs to train for', default=15)
+    parser.add_argument('-o', '--model_name', type=str, help='What to call the {model}.pt', default='best.pt')
+    parser.add_argument('-d', '--dataset_name', type=str, help='The training set', default='data_version_0.csv')
+    parser.add_argument('-c', '--context_length', type=int, help='How large the model should be', default=512)
     parser.add_argument('-do', '--dropout', type=float, default=0.95)
+    parser.add_argument('-wb', '--weight_balance', type=bool, help='If the loss should be weighted witht the imbalane', default=False)
+    parser.add_argument('-db', '--dataset_balance', type=bool, help='Use np.random choice to balance the dataset', default=True)
 
     args = parser.parse_args()
 
@@ -31,7 +37,8 @@ if __name__ == '__main__':
 
     training_set = BertDataset(
         max_length=args.context_length,
-        data_path=f'./data/{args.dataset_name}'
+        data_path=f'./data/{args.dataset_name}',
+        dataset_balance=args.dataset_balance
     )
     validation_set = BertDataset(
         max_length=args.context_length,
@@ -49,10 +56,10 @@ if __name__ == '__main__':
             validation_set=validation_set.get_dataloader(len(validation_set), shuffle=False),
             optimizer=optimizer,
             loss_fn=loss_fn,
-            label_weight=training_set.calculate_calance_weights()
+            label_weight=training_set.calculate_calance_weights() if args.weight_balance else None,
         )
     except KeyboardInterrupt:
-        print('Training interrupted')
+        print('Training interrupted, saving model...')
 
     save_path = os.path.join(MODEL_DIR, args.model_name)
     num_models = len(os.listdir(MODEL_DIR))
