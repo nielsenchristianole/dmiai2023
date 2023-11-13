@@ -1,6 +1,7 @@
 import os
 from typing import List, Dict
 
+import numpy as np
 import pandas as pd
 
 import torch
@@ -24,11 +25,27 @@ class BertDataset(Dataset):
             self,
             max_length: int = float('inf'),
             data_path: str = DATA_PATH,
-            model_dir: str = MODEL_DIR
+            model_dir: str = MODEL_DIR,
+            dataset_balance: bool = True
         ):
         super(BertDataset, self).__init__()
         
         self.data = pd.read_csv(data_path)
+
+        if dataset_balance:
+            total = len(self.data)
+            num_ai = self.data['is_generated'].sum()
+            num_human = total - num_ai
+            majority_idx = np.arange(total)[np.where(self.data['is_generated'] == (num_human < num_ai))]
+            num_remove = abs(num_ai - num_human)
+            drop_idx = np.random.choice(majority_idx, num_remove, replace=False)
+
+            self.data = self.data.drop(index=drop_idx).reset_index(drop=True)
+            
+            # assert is balanced sanity check
+            assert len(self.data) == 2 * min(num_ai, num_human), f"You done goofed up {len(self.data)=} != {2 * min(num_ai, num_human)=}"
+
+
         self.max_length = max_length
 
         self.tokenizer = transformers.BertTokenizer.from_pretrained(
@@ -77,11 +94,13 @@ class BertDataset(Dataset):
     def get_dataloader(
             self,
             batch_size: int,
+            dataset_balance: bool = True,
             *,
             num_workers: int = max(1, os.cpu_count() - 2),
             shuffle: bool = True,
             kwargs: dict = {}
         ):
+
         return DataLoader(
             self,
             batch_size=batch_size,
