@@ -22,6 +22,7 @@ class BERTClassifier(torch.nn.Module):
     def __init__(
             self,
             model_dir: str=MODEL_DIR,
+            dropout: float=0.,
             *,
             download_weights: bool=False
         ):
@@ -41,11 +42,14 @@ class BERTClassifier(torch.nn.Module):
                 config=config
             )
         self.dense = nn.Sequential(
-            nn.Linear(768, 1),
-            # nn.ReLU(),
-            # nn.Linear(256, 1)
+            nn.Linear(768, 512),
+            nn.Dropout(dropout),
+            nn.ReLU(),
+            nn.Linear(512, 1)
         )
         self.sigmoid = nn.Sigmoid()
+
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def forward(
             self,
@@ -55,9 +59,9 @@ class BERTClassifier(torch.nn.Module):
         ) -> torch.Tensor:
 
         _, x = self.bert(
-            ids,
-            attention_mask=mask,
-            token_type_ids=token_type_ids,
+            ids.to(self.device),
+            attention_mask=mask.to(self.device),
+            token_type_ids=token_type_ids.to(self.device),
             return_dict=False
         )
         x = self.dense(x)
@@ -107,12 +111,15 @@ def train_bart(
         loss_fn: nn.BCEWithLogitsLoss,
         optimizer: torch.optim.Optimizer,
         validation_set: DataLoader=None,
+        label_weight: torch.Tensor=None,
         *,
         verbose: bool=True
     ):
-
     for epoch in range(epochs):
         
+        if label_weight is not None:
+            label_weight = label_weight.to(model.device)
+
         model.train()
         train_loop = tqdm.tqdm(
             enumerate(training_set),
@@ -133,15 +140,15 @@ def train_bart(
             label = label.type_as(pred)
 
             loss = loss_fn(pred, label)
+            if label_weight is not None:
+                loss = torch.where(label == 1, loss * label_weight[1], loss * label_weight[0])
+            
+            loss = loss.mean()
             loss.backward()
             
             optimizer.step()
             
-            pred = np.where(pred >= 0, 1, 0)
-
-            num_correct = sum(1 for a, b in zip(pred, label) if a[0] == b[0])
-            num_samples = pred.shape[0]
-            accuracy = num_correct / num_samples
+            accuracy = (pred >= 0).type_as(label).eq(label).to(float).mean().item()
     
             train_loop.set_description(f'Epoch={epoch+1}/{epochs}')
             train_loop.set_postfix(loss=loss.item(), acc=accuracy)
@@ -161,13 +168,14 @@ def train_bart(
                     **batch
                 )
                 label = label.type_as(pred)
-                loss = loss_fn(pred, label)
                 
-                pred = np.where(pred >= 0, 1, 0)
-
-                num_correct = sum(1 for a, b in zip(pred, label) if a[0] == b[0])
-                num_samples = pred.shape[0]
-                accuracy = num_correct / num_samples
+                loss = loss_fn(pred, label)
+                if label_weight is not None:
+                    loss = torch.where(label == 1, loss * label_weight[1], loss * label_weight[0])
+                
+                loss = loss.mean()
+                
+                accuracy = (pred >= 0).type_as(label).eq(label).to(float).mean().item()
         
                 val_loop.set_description(f'Epoch={epoch+1}/{epochs}')
                 val_loop.set_postfix(loss=loss.item(), acc=accuracy)
