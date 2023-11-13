@@ -18,11 +18,11 @@ import pandas as pd
 def clean_text(text):
     # Remove all non-alphanumeric characters and all special unicode characters
     # Keep: .,;:!?-$%&/'" and danish characters along with spaces
-    text = re.sub(r'[^a-zA-Z0-9æøåÆØÅ.,;:!? \-$/\'"%&]', ' ', text)
+    # text = re.sub(r'[^a-zA-Z0-9æøåÆØÅ.,;:!? \-$/\'"%&]', ' ', text)
     
     # Remove all double spaces and links
-    text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'http\S+', '', text)
+    # text = re.sub(r'\s+', ' ', text)
+    # text = re.sub(r'http\S+', '', text)
     
     return text
 
@@ -177,7 +177,7 @@ def convert_gen_and_scrap_to_csv():
     df.to_csv('ds_constructor/data_custom.csv', index=False)
     
 urls = get_urls()
-# extract_data(urls)
+extract_data(urls)
 convert_scraped_to_text()
 convert_val_to_text()
 convert_gen_and_scrap_to_csv()

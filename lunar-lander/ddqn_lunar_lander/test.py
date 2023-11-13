@@ -126,7 +126,7 @@ train_agent()
 # Apply PCA on the start states and plot the first two components
 # Use the rewards and frames as the color of the points respectively in two different plots
 
-plt.plot(rewards, frames, 'o')
-plt.xlabel('rewards')
-plt.ylabel('frames')
-plt.savefig('rewardsXframes2.png')
+# plt.plot(rewards, frames, 'o')
+# plt.xlabel('rewards')
+# plt.ylabel('frames')
+# plt.savefig('rewardsXframes2.png')
