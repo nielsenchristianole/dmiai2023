@@ -178,3 +178,5 @@ Dockerfile
 secrets/
 data/data_version_*.csv
 data/*.ipynb
+com_in/
+com_out/

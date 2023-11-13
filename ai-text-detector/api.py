@@ -11,6 +11,7 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import os
 import numpy as np
 import torch
 from model.model import BERTClassifier
@@ -20,11 +21,16 @@ from loguru import logger
 import pandas as pd
 
 
-SAVE_INPUTS = True
 MODEL_WEIGHTS_PATH = './model/trained_models/best.pt'
 INPUT_SAVE_PATH = './data/val_data.tsv'
 LOG_DISTINATION = './data/logs.log'
+COM_IN_PATH = './com_in/'
+COM_OUT_PATH = './com_out/'
+COM_SPLIT = '@@@@@'
 
+
+os.makedirs(COM_IN_PATH, exist_ok=True)
+os.makedirs(COM_OUT_PATH, exist_ok=True)
 
 text_classifier = BERTClassifier(download_weights=False)
 text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, map_location=torch.device('cpu')))
@@ -83,14 +89,37 @@ def predict(request: PredictRequestDto):
     )
 
 
+@app.post('/gpu_bert/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+
+    with open(COM_IN_PATH + 'request.txt', 'w') as f:
+        f.write(COM_SPLIT.join(request.answers))
+
+    out_dir = os.listdir(COM_OUT_PATH)
+    if 'request.txt' in out_dir:
+        os.remove(COM_OUT_PATH + 'request.txt')
+    
+    while True:
+        out_dir = os.listdir(COM_OUT_PATH)
+        if 'request.txt' in out_dir:
+            break
+    
+    with open(COM_OUT_PATH + 'request.txt', 'r') as f:
+        output = f.read().split(',')
+    output = list(map(int, output))
+
+    return PredictResponseDto(
+        class_ids=output
+    )
+
+
 @app.post('/save/predict', response_model=PredictResponseDto)
 def predict(request: PredictRequestDto):
 
-    if SAVE_INPUTS:
-        for idx, text in enumerate(request.answers):
-            logger.success(text)
-        df = pd.DataFrame(request.answers)
-        df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
+    for idx, text in enumerate(request.answers):
+        logger.success(text)
+    df = pd.DataFrame(request.answers)
+    df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
     
     return PredictResponseDto(
         class_ids=len(request.answers) * [0]
