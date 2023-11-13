@@ -16,10 +16,12 @@ import torch
 from models.dtos import LunarLanderPredictRequestDto, LunarLanderPredictResponseDto
 from agent.base_agent import BaselineAgent
 from loguru import logger
+from ddqn-lunar_lander.ddqn_torch import DoubleQAgent
 
-
-agent = BaselineAgent()
-
+model = 'ddqn-lunar_lander/stats/m6.h5'
+agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01)
+agent.load_saved_model(name)
+    
 app = FastAPI()
 
 initialize_logging()
@@ -38,7 +40,7 @@ app.include_router(router.router, tags=['Lunar Lander'])
 
 
 @app.post('/predict', response_model=LunarLanderPredictResponseDto)
-def predict_closing_price(request: LunarLanderPredictRequestDto):
+def predict(request: LunarLanderPredictRequestDto):
 
     reward = f"{request.reward:> 4}"
     is_terminal = f"{request.is_terminal:> 5}"
@@ -53,8 +55,8 @@ def predict_closing_price(request: LunarLanderPredictRequestDto):
             action=0
         )
 
-    state = torch.FloatTensor(request.observation, device=agent.device)
-    action: torch.Tensor = agent.predict(state)
+    state = np.array(request.observation)
+    action = agent.choose_action(state)
 
     return LunarLanderPredictResponseDto(
         action=action.item()
