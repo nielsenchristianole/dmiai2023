@@ -177,3 +177,4 @@ data/val_data.tsv
 Dockerfile
 secrets/
 data/data_version_*.csv
+data/*.ipynb
