@@ -113,6 +113,21 @@ def predict(request: PredictRequestDto):
     )
 
 
+@app.post('/in_method/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+    
+    char = '\n'
+
+    class_ids = len(request.answers) * [None]
+
+    for idx, text in enumerate(request.answers):
+        class_ids[idx] = int(char in text)
+
+    return PredictResponseDto(
+        class_ids=class_ids
+    )
+
+
 @app.get('/api')
 def hello():
     return {

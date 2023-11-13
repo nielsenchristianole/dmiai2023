@@ -12,20 +12,26 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import time
+import numpy as np
 import torch
 from models.dtos import LunarLanderPredictRequestDto, LunarLanderPredictResponseDto
 from agent.base_agent import BaselineAgent
 from loguru import logger
-from ddqn-lunar_lander.ddqn_torch import DoubleQAgent
+from ddqn_lunar_lander.ddqn_torch import DoubleQAgent
 
-model = 'ddqn-lunar_lander/stats/m6.h5'
+CHECKPOINT_PATH = 'ddqn_lunar_lander/stats/m6.h5'
+
+# FILE_LOGS = logger.add('logs/lunar_lander.log', level='SUCCESS')
+
 agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01)
-agent.load_saved_model(name)
-    
+agent.load_saved_model(CHECKPOINT_PATH)
+
+
 app = FastAPI()
 
 initialize_logging()
-initialize_logging_middleware(app)
+# initialize_logging_middleware(app)
 configure_exception_handlers(app)
 
 app.add_middleware(
@@ -38,23 +44,49 @@ app.add_middleware(
 
 app.include_router(router.router, tags=['Lunar Lander'])
 
+FIRST_RUN = True
+NEW_RUN = True
+RUNNING_TIME = time.time()
+TOTAL_TIME = time.time()
+TOTAL_RUNS = 0
 
-@app.post('/predict', response_model=LunarLanderPredictResponseDto)
+@app.post('/agent/predict', response_model=LunarLanderPredictResponseDto)
 def predict(request: LunarLanderPredictRequestDto):
 
-    reward = f"{request.reward:> 4}"
-    is_terminal = f"{request.is_terminal:> 5}"
-    total_reward = f"{request.total_reward:> 6}"
-    game_ticks = f"{request.game_ticks:> 4}"
+    global FIRST_RUN
+    global NEW_RUN
+    global RUNNING_TIME
+    global TOTAL_TIME
+    global TOTAL_RUNS
 
-    logger.info(f"{reward=}, {is_terminal=}, {total_reward=}, {game_ticks=}")
+    time_now = time.time()
+    time_delta = time_now - RUNNING_TIME
+
+    if FIRST_RUN:
+        TOTAL_TIME = time_now
+        FIRST_RUN = False
+    
+    if NEW_RUN:
+        RUNNING_TIME = time_now
+        logger.info(f"Initial state: {request.observation}")
+        NEW_RUN = False
 
     if request.is_terminal:
-        # should return any action for new game to start
+        TOTAL_RUNS += 1
+        logger.success(f"Total Runs: {TOTAL_RUNS}")
+        logger.success(f"Total Reward: {request.total_reward}")
+        logger.success(f"Time spent: {time_delta}")
+        logger.success(f"Total Time spent: {time_now - TOTAL_TIME}")
+        NEW_RUN = True
         return LunarLanderPredictResponseDto(
             action=0
         )
-
+    
+    if time_delta >= 15:
+        return LunarLanderPredictResponseDto(
+            action=0
+        )
+    
     state = np.array(request.observation)
     action = agent.choose_action(state)
 
