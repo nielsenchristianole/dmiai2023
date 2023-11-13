@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import re
 from collections import defaultdict
+from sklearn.cluster import KMeans
+import tqdm
 
 def grab_word_dict():
     # Step 1: Open the .txt file
@@ -23,7 +25,7 @@ def grab_word_dict():
         return word_dict
 
 # Load data.csv from data/ folder
-data = pd.read_csv('data/data.csv')
+data = pd.read_csv('data/val_data.tsv', sep='\t', header=None, names=['text'])
 
 word_dict = grab_word_dict()
 
@@ -31,7 +33,12 @@ word_types = set(word_dict.values())
 
 word_types_dict = {word_type: i for i, word_type in enumerate(word_types)}
 
-for text, label in zip(data['text'],data['is_generated']):
+features = []
+
+for text in tqdm.tqdm(data['text']):
+    
+    # Skip empty texts
+    print("text", text)
     
     # Remove '\n' and '\r'
     text = re.sub(r'[\n\r]', '', text)
@@ -66,11 +73,12 @@ for text, label in zip(data['text'],data['is_generated']):
             word_type = word_dict[word]
             word_type_count[word_types_dict[word_type]] += 1
     
-    # print(list(word_type_count.values()))
-    print(word_type_count, n_special_char, round(lix_score,2), label)
+    feature = word_type_count + [n_special_char, round(lix_score,2), avg_word_length]
     
-    
-    # for word in text:
-    #     if word in word_dict:
-    #         print(word, word_dict[word])
+    features.append(feature)
 
+# clustering using KMeans
+kmeans = KMeans(n_clusters=2, random_state=0).fit(features)
+
+# Display the cluster ratio
+print("Cluster ratio: ", np.bincount(kmeans.labels_)/len(kmeans.labels_))

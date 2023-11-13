@@ -8,6 +8,8 @@ from model.data_loader import BertDataset
 
 
 if __name__ == '__main__':
+    print("Training model")
+    
     MODEL_DIR = './model/trained_models/'
     os.makedirs(MODEL_DIR, exist_ok=True)
 
@@ -62,3 +64,5 @@ if __name__ == '__main__':
         model.state_dict(),
         os.path.join(MODEL_DIR, args.model_name)
     )
+    
+    print("Training finished. Model saved to", save_path)

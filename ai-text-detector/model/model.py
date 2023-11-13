@@ -115,7 +115,8 @@ def train_bart(
         *,
         verbose: bool=True
     ):
-    for epoch in range(epochs):
+    
+    for epoch in tqdm.trange(epochs, desc='Epochs'):
         
         if label_weight is not None:
             label_weight = label_weight.to(model.device)
