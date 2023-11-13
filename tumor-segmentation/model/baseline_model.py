@@ -31,13 +31,15 @@ class BaselineModel():
         )
     
     def predict(self, image: np.ndarray) -> np.ndarray:
-        out_shape = image.shape[:2]
-        np.array(
+        out_shape = image.shape[1], image.shape[0]
+        grayscale = 255 * np.array(
             self.mask.resize(
                 out_shape,
                 Image.NEAREST
             ),
-            dtype=bool
+            dtype=np.uint8
         )
+        
+        return np.stack((grayscale, grayscale, grayscale), axis=-1)
 
 

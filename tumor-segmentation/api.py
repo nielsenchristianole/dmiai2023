@@ -12,15 +12,17 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
-
+from PIL import Image
 import os
 from utils import encode_request, decode_request
 from models.dtos import PredictRequestDto, PredictResponseDto
 from model.baseline_model import BaselineModel
 
+
+SAVE_INPUT_DATA = False
+
+
 baseline_model = BaselineModel(label_dir='./data/patients/labels')
-
-
 
 app = FastAPI()
 
@@ -39,10 +41,17 @@ app.add_middleware(
 app.include_router(router.router, tags=['Tumor Segmentation'])
 
 
-@app.post('baseline/predict')
+@app.post('/baseline/predict')
 def baseline_predict(request: PredictRequestDto):
-
+    
     img = decode_request(request)
+    
+    if SAVE_INPUT_DATA:
+        save_dir = './data/validation_set/'
+        idx = len(os.listdir(save_dir))
+        save_path = save_dir + f"validation_{idx:0>4}.png"
+        Image.fromarray(img).save(save_path)
+
     pred = baseline_model.predict(img)
     encoded_img = encode_request(pred)
 
