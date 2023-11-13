@@ -6,7 +6,7 @@ from models.dtos import LunarLanderPredictRequestDto, LunarLanderPredictResponse
 router = APIRouter()
 
 
-@router.post('/predict', response_model=LunarLanderPredictResponseDto)
+@router.post('/random/predict', response_model=LunarLanderPredictResponseDto)
 def predict(request: LunarLanderPredictRequestDto):
     # x, y, vx, vy, theta, vtheta, l1, l2 = oberservation = request.observation
     # reward = request.reward
