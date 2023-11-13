@@ -11,6 +11,7 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import numpy as np
 import torch
 from model.model import BERTClassifier
 from model.data_loader import ConvertRequest
@@ -26,10 +27,10 @@ LOG_DISTINATION = './data/logs.log'
 
 
 text_classifier = BERTClassifier(download_weights=False)
-text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH))
+text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, map_location=torch.device('cpu')))
 text_classifier.eval()
 
-request_converter = ConvertRequest(100)
+request_converter = ConvertRequest(64)
 
 
 app = FastAPI()
@@ -56,20 +57,59 @@ app.include_router(router.router, tags=['AI Text Detector'])
 @app.post('/bert/predict', response_model=PredictResponseDto)
 def predict(request: PredictRequestDto):
 
+    batch_size = 64
+    num_answers = len(request.answers)
+    idxs = list(range(0, num_answers, batch_size)) + [num_answers]
+
+    logger.info(f"{num_answers} answers on {len(idxs) - 1} baches")
+
+    output = []
+    for pred_num, (i0, i1) in enumerate(zip(idxs[:-1], idxs[1:]), start=1):
+        logger.info(f"pred {pred_num}/{len(idxs)-1}")
+
+        model_input = request_converter(request=request.answers[i0:i1])
+        preds = text_classifier.predict(**model_input)
+        preds = preds.cpu().squeeze().detach().numpy().tolist()
+        
+        if isinstance(preds, list):
+            output.extend(preds)
+        else:
+            output.append(preds)
+            preds = [preds]
+
+    logger.info(f"Completed with {len(output)} preds")
+    return PredictResponseDto(
+        class_ids=output
+    )
+
+
+@app.post('/save/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+
     if SAVE_INPUTS:
         for idx, text in enumerate(request.answers):
             logger.success(text)
         df = pd.DataFrame(request.answers)
         df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
     
-    model_input = request_converter(request=request.answers)
-    preds = text_classifier.predict(**model_input)
-    preds = preds.cpu().squeeze().detach().numpy().tolist()
+    return PredictResponseDto(
+        class_ids=len(request.answers) * [0]
+    )
 
-    logger.info('Preds: ' + ', '.join(map(str, preds)))
+
+@app.post('/guess_true/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
 
     return PredictResponseDto(
-        class_ids=preds
+        class_ids=len(request.answers) * [1]
+    )
+
+
+@app.post('/guess_false/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+
+    return PredictResponseDto(
+        class_ids=len(request.answers) * [0]
     )
 
 
