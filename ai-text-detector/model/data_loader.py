@@ -29,11 +29,7 @@ class BertDataset(Dataset):
         super(BertDataset, self).__init__()
         
         self.data = pd.read_csv(data_path)
-        self.max_length = min(
-            max([len(text) for text in self.list_data()]),
-            max_length
-        )
-        self.max_length = 100
+        self.max_length = max_length
 
         self.tokenizer = transformers.BertTokenizer.from_pretrained(
             'Maltehb/danish-bert-botxo',
@@ -67,6 +63,16 @@ class BertDataset(Dataset):
     
     def list_data(self):
         return self.data['text'].values.tolist()
+    
+    def calculate_calance_weights(self):
+
+        labels = self.data['is_generated'].values.tolist()
+        num_samples = len(labels)
+        num_positive = sum(labels)
+        num_negative = num_samples - num_positive
+        w0 = num_samples / (2 * num_negative)
+        w1 = num_samples / (2 * num_positive)
+        return torch.tensor([w0, w1], dtype=torch.float)
 
     def get_dataloader(
             self,
@@ -102,11 +108,6 @@ class ConvertRequest():
 
     def __call__(self, request: List[str]) -> Dict[str, torch.Tensor]:
 
-        max_length = min(
-            max([len(text) for text in request]),
-            self.max_length
-        )
-
         num_texts = len(request)
         ids = num_texts * [None]
         mask = num_texts * [None]
@@ -119,7 +120,7 @@ class ConvertRequest():
                 padding='max_length',
                 add_special_tokens=True,
                 return_attention_mask=True,
-                max_length=max_length,
+                max_length=self.max_length,
                 truncation=True
             )
             ids[idx] = encoded['input_ids']
