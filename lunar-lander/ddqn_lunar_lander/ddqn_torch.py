@@ -69,7 +69,7 @@ class Agent(object):
     def choose_action(self, state):
         # state = state[np.newaxis, :]
         rand = np.random.random()
-        state = torch.from_numpy(state).float().unsqueeze(0)
+        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.q_func.eval()
         with torch.no_grad():
             action_values = self.q_func(state)
@@ -89,7 +89,8 @@ class Agent(object):
         raise Exception("Not implemented")
         
     def save_model(self, path):
-        torch.save(self.q_func.state_dict(), path)
+        torch.save(self.q_func.state_dict(), path + ".h5")
+        torch.save(self.q_func_target.state_dict(), path + "_target.h5")
 
     def load_saved_model(self, path):
         self.q_func = QNN(8, 4, 42).to(device)

@@ -5,13 +5,14 @@ from ddqn_torch import DoubleQAgent
 import numpy as np
 import tqdm
 import time
+from torch.optim.lr_scheduler import LambdaLR
 
 model = 'ddqn_lunar_lander/stats/m6.h5'
 
 # m6;libT algDDQN mem200000 2NN(512,512) bat128 epi1500 lea4 rep100
 def train_agent(n_episodes=10000,
                 load_model=None,
-                lr = 0.0001,
+                lr = 1e-4,
                 epsilon = 1.0,
                 epsilon_end = 0.01,
                 save_path = "models"):
@@ -33,8 +34,20 @@ def train_agent(n_episodes=10000,
                          mem_size=200000,
                          batch_size=128,
                          epsilon_end=epsilon_end)
+    
+    lr_steps = [5e-5, 1e-5, 5e-6]
+    def lr_lambda(_):
+        return lr_steps.pop(0)
+    
+    scheduler = LambdaLR(agent.optimizer, lr_lambda=lr_lambda)
+
+    lr_steps_at = [285, 295, 300]
+    def updater(update_at):
+        yield from update_at
+    updater_gen = updater(lr_steps_at)
+
     if load_model:
-        agent.load_saved_model("ddqn_lunar_lander/saved_models/{save_path}/"+load_model)
+        agent.load_saved_model(load_model)
         
         
     start_states = []
@@ -42,8 +55,17 @@ def train_agent(n_episodes=10000,
     eps_history = []
     start = time.time()
     best_avg = -1000
+    update_at = updater_gen.__next__()
     
     for i in range(n_episodes):
+
+        # Update the learning rate at specific average returns
+        if best_avg > update_at and update_at != lr_steps_at[-1]:
+            print(">>> UPDATING LR TO", lr_steps[0])
+            scheduler.step()
+            update_at = updater_gen.__next__()
+
+
         terminated = False
         truncated = False
         score = 0
@@ -74,10 +96,12 @@ def train_agent(n_episodes=10000,
                                                                                                                       np.mean(scores[i-10:]), 
                                                                                                                       avg_score))
         
-        if avg_score > best_avg*1.01 and i > 100 and avg_score > 200:
+        if avg_score > best_avg*1.01 and i > 100 and avg_score > lr_steps_at[0]:
             best_avg = avg_score
             print(">>> NEW BEST AVERAGE:",best_avg)
-            agent.save_model(f'ddqn_lunar_lander/saved_models/{save_path}/ddqn_torch_model_{round(best_avg,0)}.h5')
+            if not os.path.exists(f'lunar_lander/ddqn_lunar_lander/saved_models/{save_path}'):
+                os.makedirs(f'lunar_lander/ddqn_lunar_lander/saved_models/{save_path}')
+            agent.save_model(f'lunar_lander/ddqn_lunar_lander/saved_models/{save_path}/ddqn_{round(best_avg,0)}')
       
     return agent, scores, start_states
 
@@ -188,17 +212,17 @@ def batch_test(models, test_games = 500):
     plt.ylabel('frames')
     plt.savefig('rewardsXframes.png')
     
-# train_agent()
-model0 = "models/ddqn_torch_model_235.86.h5"
-model1 = "models1/ddqn_torch_model_241.63.h5"
-model2 = "models2/ddqn_torch_model_282.35.h5"
-model3 = "models3/ddqn_torch_model_289.59.h5"
-model4 = "models4/ddqn_torch_model_284.91.h5"
+save_path = "models5"
+train_agent(load_model = "lunar-lander/ddqn_lunar_lander/models0/ddqn_289.h5",save_path = save_path)
 
-plot_test(ensemble_test, [model2,model3,model4], test_games = 500, plot_surfix = "ensemble")
-plot_test(test, model2, test_games = 500, plot_surfix = "m2")
-plot_test(test, model3, test_games = 500, plot_surfix = "m3")
-plot_test(test, model4, test_games = 500, plot_surfix = "m4")
+
+model0 = "models3/ddqn_289.h5"
+
+
+# plot_test(ensemble_test, [model2,model3,model4], test_games = 500, plot_surfix = "ensemble")
+# plot_test(test, model2, test_games = 500, plot_surfix = "m2")
+# plot_test(test, model3, test_games = 500, plot_surfix = "m3")
+# plot_test(test, model4, test_games = 500, plot_surfix = "m4")
 
 
 

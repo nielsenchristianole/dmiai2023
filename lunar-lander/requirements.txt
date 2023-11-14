@@ -5,3 +5,5 @@ pygame
 # ---- Added by the Emily CLI ----
 torch
 dill
+matplotlib
+tqdm
