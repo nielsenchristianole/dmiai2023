@@ -8,6 +8,11 @@ synthetic_mask_folder = './tumor-segmentation/data/synthetic_mask'
 resized_img_folder = './tumor-segmentation/data/resized_synthetic_imgs'
 resized_label_folder = './tumor-segmentation/data/resized_synthetic_masks'
 
+# Create the directories if they don't exist
+os.makedirs(resized_img_folder, exist_ok=True)
+os.makedirs(resized_label_folder, exist_ok=True)
+
+
 interpolation_method = Image.NEAREST
 
 for img_file in os.listdir(synthetic_images_folder):

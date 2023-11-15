@@ -1,4 +1,4 @@
-chmod +x run_process.sh
+#chmod +x tumor-segmentation/run_process.sh
 
 import os
 from PIL import Image
