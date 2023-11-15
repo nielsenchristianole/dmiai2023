@@ -21,11 +21,11 @@ from agent.base_agent import BaselineAgent
 from loguru import logger
 from ddqn_lunar_lander.ddqn_torch import DoubleQAgent
 
-CHECKPOINT_PATH = 'ddqn_lunar_lander/stats/model_0.h5'
+CHECKPOINT_PATH = 'ddqn_lunar_lander/stats/model_296.h5'
 
 # FILE_LOGS = logger.add('logs/lunar_lander.log', level='SUCCESS')
 
-agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01)
+agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01, hidden_size=1024)
 agent.load_saved_model(CHECKPOINT_PATH)
 
 
