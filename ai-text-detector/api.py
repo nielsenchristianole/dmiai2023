@@ -19,6 +19,9 @@ from model.data_loader import ConvertRequest
 from models.dtos import PredictRequestDto, PredictResponseDto
 from loguru import logger
 import pandas as pd
+import requests
+import time
+import json
 
 
 MODEL_WEIGHTS_PATH = './model/trained_models/best.pt'
@@ -27,7 +30,9 @@ LOG_DISTINATION = './data/logs.log'
 COM_IN_PATH = './com_in/'
 COM_OUT_PATH = './com_out/'
 COM_SPLIT = '@@@@@'
-
+NGROK_URL = 'https://a504-80-208-68-242.ngrok-free.app'
+X_TOKEN = '63a2730bc2ed4d28af6801994620c758'
+SCRAPING_DIR = './data_scraping/'
 
 os.makedirs(COM_IN_PATH, exist_ok=True)
 os.makedirs(COM_OUT_PATH, exist_ok=True)
@@ -116,11 +121,10 @@ def predict(request: PredictRequestDto):
 @app.post('/save/predict', response_model=PredictResponseDto)
 def predict(request: PredictRequestDto):
 
-    for idx, text in enumerate(request.answers):
-        logger.success(text)
     df = pd.DataFrame(request.answers)
     df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
     
+    logger.success(len(request.answers))
     return PredictResponseDto(
         class_ids=len(request.answers) * [0]
     )
@@ -139,6 +143,14 @@ def predict(request: PredictRequestDto):
 
     return PredictResponseDto(
         class_ids=len(request.answers) * [0]
+    )
+
+
+@app.post('/bad/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+
+    return PredictResponseDto(
+        class_ids=[1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0]
     )
 
 
@@ -174,6 +186,92 @@ def index():
             port=Environment().CONTAINER_PORT
         )
     )
+
+
+SCRAPE_ANSWER = None
+
+@app.post('/scape_worker/predict', response_model=PredictResponseDto)
+def predict(request: PredictRequestDto):
+    
+    global SCRAPE_ANSWER
+
+    if SCRAPE_ANSWER is None:
+        SCRAPE_ANSWER = len(request.answers) * [0]
+
+    return PredictResponseDto(
+        class_ids=SCRAPE_ANSWER
+    )
+
+
+@app.get('/start_scraper')
+def start_scraping():
+    def start_atempt() -> requests.models.Response:
+        url = 'https://cases.dmiai.dk/api/v1/usecases/ai-text-detector/validate/queue'
+        header = {'x-token': X_TOKEN}
+        data = {'url': f"{NGROK_URL}/scape_worker/predict"}
+
+        return requests.post(
+            url,
+            headers=header,
+            json=data
+        )
+
+    def get_atempt_status(queued_attempt_uuid: str) -> requests.models.Response:
+        url = f"https://cases.dmiai.dk/api/v1/usecases/ai-text-detector/validate/queue/{queued_attempt_uuid}"
+        header = {'x-token': X_TOKEN}
+        return requests.get(
+            url,
+            headers = header
+        )
+
+    def get_atempt_result(queued_attempt_uuid: str) -> requests.models.Response:
+        url = f"https://cases.dmiai.dk/api/v1/usecases/ai-text-detector/validate/queue/{queued_attempt_uuid}/attempt"
+        header = {'x-token': X_TOKEN}
+        return requests.get(
+            url,
+            headers = header
+        )
+    
+    def do_run() -> float:
+        out1 = start_atempt()
+        queued_attempt_uuid = out1.json()['queued_attempt_uuid']
+
+        while True:
+            time.sleep(1)
+
+            out2 = get_atempt_status(queued_attempt_uuid)
+            print(f"Status code: {out2.status_code}")
+            if out2.json()['status'] == 'done':
+                break
+
+        out3 = get_atempt_result(queued_attempt_uuid)
+        score = out3.json()['score']
+        return score
+
+    current_score = do_run()
+
+    with open(SCRAPING_DIR + 'first_guess.json', 'w') as f:
+        json.dump({'score': current_score, 'answer': SCRAPE_ANSWER}, f)
+
+    for idx in range(len(SCRAPE_ANSWER)):
+
+        SCRAPE_ANSWER[idx] = 1
+        new_score = do_run()
+
+        if new_score > current_score:
+            SCRAPE_ANSWER[idx] = 0
+        else:
+            current_score = new_score
+            with open(SCRAPING_DIR + f'current_guess.json', 'w') as f:
+                json.dump({'score': current_score, 'answer': SCRAPE_ANSWER}, f)
+
+        with open(SCRAPING_DIR + f'guess_{idx:04}.json', 'w') as f:
+            json.dump({
+                'score': new_score,
+                'min_score': current_score,
+                'idx': idx,
+                'answer': SCRAPE_ANSWER,
+            }, f)
 
 
 if __name__ == '__main__':
