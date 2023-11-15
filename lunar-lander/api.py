@@ -12,6 +12,7 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import os
 import time
 import numpy as np
 import torch
@@ -20,7 +21,7 @@ from agent.base_agent import BaselineAgent
 from loguru import logger
 from ddqn_lunar_lander.ddqn_torch import DoubleQAgent
 
-CHECKPOINT_PATH = 'ddqn_lunar_lander/stats/m6.h5'
+CHECKPOINT_PATH = 'ddqn_lunar_lander/stats/model_0.h5'
 
 # FILE_LOGS = logger.add('logs/lunar_lander.log', level='SUCCESS')
 
@@ -44,11 +45,14 @@ app.add_middleware(
 
 app.include_router(router.router, tags=['Lunar Lander'])
 
+print('Finished loading', os.path.split(CHECKPOINT_PATH)[-1])
+
 FIRST_RUN = True
 NEW_RUN = True
 RUNNING_TIME = time.time()
 TOTAL_TIME = time.time()
 TOTAL_RUNS = 0
+NUM_CALLS = 0
 
 @app.post('/agent/predict', response_model=LunarLanderPredictResponseDto)
 def predict(request: LunarLanderPredictRequestDto):
@@ -58,6 +62,8 @@ def predict(request: LunarLanderPredictRequestDto):
     global RUNNING_TIME
     global TOTAL_TIME
     global TOTAL_RUNS
+    global NUM_CALLS
+    NUM_CALLS += 1
 
     time_now = time.time()
     time_delta = time_now - RUNNING_TIME
@@ -77,6 +83,7 @@ def predict(request: LunarLanderPredictRequestDto):
         logger.success(f"Total Reward: {request.total_reward}")
         logger.success(f"Time spent: {time_delta}")
         logger.success(f"Total Time spent: {time_now - TOTAL_TIME}")
+        logger.success(f"Total API calls: {NUM_CALLS}")
         NEW_RUN = True
         return LunarLanderPredictResponseDto(
             action=0

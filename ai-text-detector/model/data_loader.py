@@ -94,7 +94,6 @@ class BertDataset(Dataset):
     def get_dataloader(
             self,
             batch_size: int,
-            dataset_balance: bool = True,
             *,
             num_workers: int = max(1, os.cpu_count() - 2),
             shuffle: bool = True,
