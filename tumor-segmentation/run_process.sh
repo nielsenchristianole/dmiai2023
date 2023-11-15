@@ -24,5 +24,6 @@ echo "I spliting all images"
 #split the dataset
 python3 ./tumor-segmentation/data_preparation/data_split.py
 
+echo "I am training now. :)"
 #train U-Net
 python3 ./tumor-segmentation/train.py
