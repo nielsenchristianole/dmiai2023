@@ -172,3 +172,7 @@ deployment.json
 .emily.env
 agent/model_checkpoints/
 ddqn_lunar_lander/stats/
+
+*.h5
+*.png
+model*
