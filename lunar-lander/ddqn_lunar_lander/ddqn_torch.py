@@ -37,12 +37,12 @@ class MemoryBuffer(object):
         return states, actions, rewards, new_states, terminals
 
 class QNN(nn.Module):
-    def __init__(self, state_size, action_size, seed):
+    def __init__(self, state_size, action_size, seed, hidden_size):
         super(QNN, self).__init__()
         self.seed = torch.manual_seed(seed)
-        self.fc1 = nn.Linear(state_size, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, action_size)
+        self.fc1 = nn.Linear(state_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, action_size)
         
     def forward(self, state):
         x = self.fc1(state)
@@ -93,22 +93,23 @@ class Agent(object):
         torch.save(self.q_func_target.state_dict(), path + "_target.h5")
 
     def load_saved_model(self, path):
-        self.q_func = QNN(8, 4, 42).to(device)
+        self.q_func = QNN(8, 4, 42, self.hidden_size).to(device)
         self.q_func.load_state_dict(torch.load(path))
         self.q_func.eval()
         
 class DoubleQAgent(Agent):
     def __init__(self, gamma=0.99, epsilon=1.0, batch_size=128, lr=0.001,
                     epsilon_dec=0.996,  epsilon_end=0.01,
-                    mem_size=1000000, replace_q_target = 100, max_grad_norm=0.1):
+                    mem_size=1000000, replace_q_target = 100, max_grad_norm=0.1, hidden_size = 512):
         
         super().__init__(lr=lr, gamma=gamma, epsilon=epsilon, batch_size=batch_size,
                 epsilon_dec=epsilon_dec,  epsilon_end=epsilon_end,
                 mem_size=mem_size)
 
+        self.hidden_size = hidden_size
         self.replace_q_target = replace_q_target
-        self.q_func = QNN(8, 4, 42).to(device)
-        self.q_func_target = QNN(8, 4, 42).to(device)
+        self.q_func = QNN(8, 4, 42, self.hidden_size).to(device)
+        self.q_func_target = QNN(8, 4, 42,self.hidden_size).to(device)
         self.optimizer = optim.Adam(self.q_func.parameters(), lr=lr)
         self.max_grad_norm = max_grad_norm
         

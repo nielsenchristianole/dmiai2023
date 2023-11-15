@@ -10,12 +10,14 @@ from torch.optim.lr_scheduler import LambdaLR
 model = 'ddqn_lunar_lander/stats/m6.h5'
 
 # m6;libT algDDQN mem200000 2NN(512,512) bat128 epi1500 lea4 rep100
-def train_agent(n_episodes=10000,
+def train_agent(n_episodes=100000,
                 load_model=None,
                 lr = 1e-4,
                 epsilon = 1.0,
                 epsilon_end = 0.01,
-                save_path = "models"):
+                save_path = "models",
+                hidden_size=512,
+                gamma=0.99):
     LEARN_EVERY = 4
     
     print("Training a DDQN agent on {} episodes. Pretrained model = {}".format(n_episodes,load_model))
@@ -27,25 +29,15 @@ def train_agent(n_episodes=10000,
             wind_power = 15.0,
             turbulence_power = 1.5,
         )
-    agent = DoubleQAgent(gamma=0.99,
+    agent = DoubleQAgent(gamma=gamma,
                          epsilon=epsilon,
                          epsilon_dec=0.995,
                          lr=lr,
                          mem_size=200000,
                          batch_size=128,
-                         epsilon_end=epsilon_end)
+                         epsilon_end=epsilon_end,
+                         hidden_size = hidden_size)
     
-    lr_steps = [5e-5, 1e-5, 5e-6]
-    def lr_lambda(_):
-        return lr_steps.pop(0)
-    
-    scheduler = LambdaLR(agent.optimizer, lr_lambda=lr_lambda)
-
-    lr_steps_at = [285, 295, 300]
-    def updater(update_at):
-        yield from update_at
-    updater_gen = updater(lr_steps_at)
-
     if load_model:
         agent.load_saved_model(load_model)
         
@@ -55,16 +47,9 @@ def train_agent(n_episodes=10000,
     eps_history = []
     start = time.time()
     best_avg = -1000
-    update_at = updater_gen.__next__()
+    # update_at = updater_gen.__next__()
     
     for i in range(n_episodes):
-
-        # Update the learning rate at specific average returns
-        if best_avg > update_at and update_at != lr_steps_at[-1]:
-            print(">>> UPDATING LR TO", lr_steps[0])
-            scheduler.step()
-            update_at = updater_gen.__next__()
-
 
         terminated = False
         truncated = False
@@ -96,16 +81,16 @@ def train_agent(n_episodes=10000,
                                                                                                                       np.mean(scores[i-10:]), 
                                                                                                                       avg_score))
         
-        if avg_score > best_avg*1.01 and i > 100 and avg_score > lr_steps_at[0]:
+        if avg_score > best_avg and i > 100 and avg_score > 285:
             best_avg = avg_score
             print(">>> NEW BEST AVERAGE:",best_avg)
-            if not os.path.exists(f'lunar_lander/ddqn_lunar_lander/saved_models/{save_path}'):
-                os.makedirs(f'lunar_lander/ddqn_lunar_lander/saved_models/{save_path}')
-            agent.save_model(f'lunar_lander/ddqn_lunar_lander/saved_models/{save_path}/ddqn_{round(best_avg,0)}')
+            if not os.path.exists(f'lunar-lander/ddqn_lunar_lander/saved_models/{save_path}'):
+                os.makedirs(f'lunar-lander/ddqn_lunar_lander/saved_models/{save_path}')
+            agent.save_model(f'lunar-lander/ddqn_lunar_lander/saved_models/{save_path}/ddqn_{int(best_avg)}')
       
     return agent, scores, start_states
 
-def test(name, test_games = 10):
+def test(name, test_games = 10, hidden_size=512):
     env = gym.make(
         "LunarLander-v2",
         continuous = False,
@@ -115,7 +100,7 @@ def test(name, test_games = 10):
         turbulence_power = 1.5,
     )
 
-    agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01)
+    agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01, hidden_size=hidden_size)
     agent.load_saved_model(name)
     state, _ = env.reset(seed=12)
     
@@ -141,7 +126,7 @@ def test(name, test_games = 10):
             
     return start_states, total_rewards, total_frames
             
-def ensemble_test(models, test_games = 500):
+def ensemble_test(models, test_games = 500, hidden_size = 512):
     env = gym.make(
         "LunarLander-v2",
         continuous = False,
@@ -153,7 +138,7 @@ def ensemble_test(models, test_games = 500):
 
     agents = []
     for model in models:
-        agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01)
+        agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01, hidden_size = hidden_size)
         agent.load_saved_model(model)
         agents.append(agent)
         
@@ -188,8 +173,8 @@ def ensemble_test(models, test_games = 500):
     return start_states, total_rewards, total_frames
                 
 
-def plot_test(test, models, test_games = 500, plot_surfix = ""):
-    _, rewards, frames = test(models, test_games = test_games)
+def plot_test(test, models, test_games = 500, plot_surfix = "", hidden_size=512):
+    _, rewards, frames = test(models, test_games = test_games, hidden_size = hidden_size)
     
     plt.plot(rewards, frames, 'o')
     plt.legend()
@@ -202,38 +187,34 @@ def plot_test(test, models, test_games = 500, plot_surfix = ""):
     print("Average reward:",np.mean(rewards), f"({plot_surfix})")
     
 
-def batch_test(models, test_games = 500):
+def batch_test(models, test_games = 500, plot_surfix = "", hidden_size = 512):
     
     for model in models:
-        _, rewards, frames = test(model, test_games = test_games)
+        _, rewards, frames = test(model, test_games = test_games, hidden_size = hidden_size)
+        print("Average reward:",np.mean(rewards), f"({model[-10:-3]})")
         plt.plot(rewards, frames, 'o', label = model)
     plt.legend()
     plt.xlabel('rewards')
     plt.ylabel('frames')
-    plt.savefig('rewardsXframes.png')
+    plt.savefig(f'rewardsXframes_{plot_surfix}.png')
+    plt.show()
     
-save_path = "models5"
-train_agent(load_model = "lunar-lander/ddqn_lunar_lander/models0/ddqn_289.h5",save_path = save_path)
+save_path = "model_1028_finetune2"
+model = f"lunar-lander/ddqn_lunar_lander/saved_models/model_1028_finetune2/ddqn_296.h5"
+model_t = f"lunar-lander/ddqn_lunar_lander/saved_models/model_1028_finetune/ddqn_296_target.h5"
+train_agent(load_model = model, save_path = save_path,
+            hidden_size=1028, 
+            lr = 1e-4, 
+            epsilon=0.005, 
+            epsilon_end = 0.005, 
+            n_episodes=10000,
+            gamma=0.997)
 
 
-model0 = "models3/ddqn_289.h5"
-
-
-# plot_test(ensemble_test, [model2,model3,model4], test_games = 500, plot_surfix = "ensemble")
+model1 = f"lunar-lander/ddqn_lunar_lander/saved_models/model_1028_finetune/ddqn_296.h5"
+model2 = f"lunar-lander/ddqn_lunar_lander/saved_models/model_1028_finetune2/ddqn_296.h5"
+batch_test([model1,model2], test_games = 500, plot_surfix = "295", hidden_size=1028)
 # plot_test(test, model2, test_games = 500, plot_surfix = "m2")
 # plot_test(test, model3, test_games = 500, plot_surfix = "m3")
 # plot_test(test, model4, test_games = 500, plot_surfix = "m4")
 
-
-
-# batch_test([model0,model1,model2,model3,model4])
-
-# start_states, rewards, frames = test(model3, test_games=500)
-
-# Apply PCA on the start states and plot the first two components
-# Use the rewards and frames as the color of the points respectively in two different plots
-
-# plt.plot(rewards, frames, 'o')
-# plt.xlabel('rewards')
-# plt.ylabel('frames')
-# plt.savefig('rewardsXframes2.png')
