@@ -6,6 +6,8 @@ import torchvision
 import random
 import cv2
 
+from torchvision.transforms.functional import InterpolationMode
+
 def create_color_gradient_tensor(width, height):
     
     # Create a linear gradient from 0 to 1 with length equal to the height of the gradient
@@ -132,13 +134,13 @@ class Homography:
         return scale_matrix
 
 def random_homography(rot_xyz_range : np.ndarray =
-                        np.array([(-np.pi/6, np.pi/6), (-np.pi/6, np.pi/6), (-np.pi/4, np.pi/4)]),
+                        np.array([(-np.pi/8, np.pi/8), (-np.pi/8, np.pi/8), (-np.pi/8, np.pi/8)]),
                       shear_range : np.ndarray = 
-                        np.array([(-0.5, 0.5), (-0.5, 0.5)]),
+                        np.array([(-0.3, 0.3), (-0.3, 0.3)]),
                       scale_range : np.ndarray = 
-                        np.array([(0.8, 1.2), (0.8, 1.2)]),
+                        np.array([(0.7, 1.1), (0.7, 1.1)]),
                       shift_range : np.ndarray = 
-                        np.array([(-0.2, 0.2), (-0.2, 0.2)])):
+                        np.array([(-0.1, 0.1), (-0.2, 0.2)])):
 
     rot_xyz = np.random.rand(3)*(rot_xyz_range[:,1] - rot_xyz_range[:,0]) + rot_xyz_range[:,0]
     shear = np.random.rand(2)*(shear_range[:,1] - shear_range[:,0]) + shear_range[:,0]
@@ -169,7 +171,8 @@ def perspective_transform(image : np.ndarray,
         label = torchvision.transforms.functional.perspective(torch.tensor(label).permute(2,0,1),
                                                                     corners.tolist(),
                                                                     corners_new.tolist(),
-                                                                    fill = (0,0,0)).permute(1,2,0).numpy()
+                                                                    fill = (0,0,0),
+                                                                    interpolation=InterpolationMode.NEAREST).permute(1,2,0).numpy()
 
     return image, label, corners_new
 
@@ -319,5 +322,6 @@ class Augmentor:
 
         noise = np.random.normal(0, self.noise_amount, image.shape)
         image = image + noise
+        image = np.clip(image, 0, 1)
 
         return image, label
