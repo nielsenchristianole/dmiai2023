@@ -4,7 +4,7 @@
 echo "I am changing size of patiens and labels images."
 python3 data_preparation/change_size.py
 
-echo "I am pairing control images with labels based on size and adjust the size before creating synthetic data."
+echo "I am pairing control images with labels based on size and adjusting the size before creating synthetic data."
 #pair the control with labels and resize to create synthetic data 
 python3 data_preparation/synthetic_data.py
 
@@ -20,7 +20,7 @@ echo "I am combining all images"
 #combine all images and labels
 python3 data_preparation/combine.py
 
-echo "I spliting all images"
+echo "I am spliting all images"
 #split the dataset
 python3 data_preparation/data_split.py
 

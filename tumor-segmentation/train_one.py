@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
@@ -108,14 +107,10 @@ def set_seed(seed):
 if __name__ == "__main__":
 
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # VERY IMPORTANT (ensures same test train split)
     seed = 42
-
-    # Config for training
     batch_size = 4
     train_test_split = 0.8
-    pretrained = None#"unet_pet_segmentation_best.pth"
+    pretrained = None
     lr = 1e-3
     epochs = 100
 
@@ -130,7 +125,6 @@ if __name__ == "__main__":
 
     #training
     model = UNet(device = DEVICE)
-
 
     if pretrained is not None:
         model.load_state_dict(torch.load(pretrained))
