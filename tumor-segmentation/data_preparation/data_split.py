@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import shutil
 from sklearn.model_selection import train_test_split
@@ -43,4 +44,4 @@ def split_data(patient_folder, mask_folder, destination, train_size, val_size):
 
     print("Datasets created.")
 
-split_data('./tumor-segmentation/data/all_images', './tumor-segmentation/data/all_masks', './tumor-segmentation/data_training', train_size=0.85, val_size=0.15)
+split_data('data/all_images', 'data/all_masks', 'data_training', train_size=0.85, val_size=0.15)

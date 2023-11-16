@@ -46,8 +46,8 @@ transform = transforms.Compose([
     transforms.Resize((512, 512))
 ])
 
-train_dataset = PETDataset('./tumor-segmentation/data_training/train/patient', './tumor-segmentation/data_training/train/mask', transform)
-val_dataset = PETDataset('./tumor-segmentation/data_training/val/patient', './tumor-segmentation/data_training/val/mask', transform)
+train_dataset = PETDataset('data_training/train/patient', 'data_training/train/mask', transform)
+val_dataset = PETDataset('data_training/val/patient', 'data_training/val/mask', transform)
 
 
 train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)

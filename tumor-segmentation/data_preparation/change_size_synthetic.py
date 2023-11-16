@@ -1,12 +1,12 @@
 import os
 from PIL import Image
 
-synthetic_images_folder = './tumor-segmentation/data/synthetic_images_plotted'
-synthetic_mask_folder = './tumor-segmentation/data/synthetic_mask'
+synthetic_images_folder = 'data/synthetic_images_plotted'
+synthetic_mask_folder = 'data/synthetic_mask'
 
 # New folders to save the resized images and labels
-resized_img_folder = './tumor-segmentation/data/resized_synthetic_imgs'
-resized_label_folder = './tumor-segmentation/data/resized_synthetic_masks'
+resized_img_folder = 'data/resized_synthetic_imgs'
+resized_label_folder = 'data/resized_synthetic_masks'
 
 # Create the directories if they don't exist
 os.makedirs(resized_img_folder, exist_ok=True)

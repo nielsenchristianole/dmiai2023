@@ -20,7 +20,7 @@ def apply_masks_to_images(images_folder, masks_folder, output_folder):
         else:
             print(f"Lack of mask for{filename}")
 
-images_folder = './tumor-segmentation/data/synthetic_images'
-masks_folder = './tumor-segmentation/data/synthetic_mask'
-output_folder = './tumor-segmentation/data/synthetic_images_plotted'
+images_folder = 'data/synthetic_images'
+masks_folder = 'data/synthetic_mask'
+output_folder = 'data/synthetic_images_plotted'
 apply_masks_to_images(images_folder, masks_folder, output_folder)

@@ -33,10 +33,10 @@ def match_closest_sizes(sizes_with_filenames1, sizes_with_filenames2):
 
 
 # directories
-dir1 = './tumor-segmentation/data/controls/imgs'
-dir2 = './tumor-segmentation/data/patients/labels'
-save_dir1 = './tumor-segmentation/data/synthetic_images'
-save_dir2 = './tumor-segmentation/data/synthetic_mask'
+dir1 = 'data/controls/imgs'
+dir2 = 'data/patients/labels'
+save_dir1 = 'data/synthetic_images'
+save_dir2 = 'data/synthetic_mask'
 
 #create
 def ensure_directory_exists(directory):

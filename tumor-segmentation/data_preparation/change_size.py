@@ -1,13 +1,14 @@
+#!/usr/bin/env python3
 import os
 from PIL import Image
 
 # Folders for original images and labels
-img_folder = './tumor-segmentation/data/patients/imgs'
-label_folder = './tumor-segmentation/data/patients/labels'
+img_folder = 'data/patients/imgs'
+label_folder = 'data/patients/labels'
 
 # Folders for resized images and labels
-resized_img_folder = './tumor-segmentation/data/resized_imgs'
-resized_label_folder = './tumor-segmentation/data/resized_labels'
+resized_img_folder = 'data/resized_imgs'
+resized_label_folder = 'data/resized_labels'
 
 # Create the directories if they don't exist
 os.makedirs(resized_img_folder, exist_ok=True)
