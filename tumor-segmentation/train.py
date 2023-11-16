@@ -81,8 +81,6 @@ class PETDataset(Dataset):
         train_idx = np.random.choice(num_images, int(num_images*self.train_test_split), replace = False)
         test_idx = np.setdiff1d(np.arange(num_images), train_idx)
 
-        print(test_idx)
-
         train_paths = [images[i] for i in train_idx]
         train_labels = [labels[i] for i in train_idx]
 
