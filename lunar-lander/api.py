@@ -25,7 +25,7 @@ CHECKPOINT_PATH = 'ddqn_lunar_lander/stats/model_296.h5'
 
 # FILE_LOGS = logger.add('logs/lunar_lander.log', level='SUCCESS')
 
-agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01, hidden_size=1024)
+agent = DoubleQAgent(gamma=0.99, epsilon=0.0, lr=0.0005, mem_size=200000, batch_size=64, epsilon_end=0.01, hidden_size=1028)
 agent.load_saved_model(CHECKPOINT_PATH)
 
 
