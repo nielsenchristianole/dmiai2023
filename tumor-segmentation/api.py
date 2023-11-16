@@ -12,6 +12,7 @@ from utilities.exceptions import configure_exception_handlers
 
 import router
 
+import numpy as np
 from PIL import Image
 import os
 from utils import encode_request, decode_request
@@ -66,14 +67,31 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model_path = 'unet_pet_segmentation_best.pth'
 
 model = UNet(device = DEVICE)
-model.load_state_dict(torch.load('./data/weights/unet.pth'))
+model.load_state_dict(
+    torch.load(
+        model_path,
+        map_location=DEVICE
+    )
+)
+
+
+def converted_model_predict(in_img: np.ndarray):
+    in_shape = in_img.shape
+
+    pred = model.predict(in_img)
+    assert isinstance(pred, np.ndarray)
+    assert pred.shape == in_shape, f"Expected shape {in_shape}, got {pred.shape}"
+    assert np.unique(pred).tolist() == [0, 255], f"Expected unique values [0, 255], got {np.unique(pred).tolist()}"
+
+    return pred
+
+
 
 @app.post('/model/predict')
-def predict(request: PredictRequestDto):
+def model_predict(request: PredictRequestDto):
 
     img = decode_request(request)
-
-    pred = model.predict(img)
+    pred = converted_model_predict(img)
     encoded_img = encode_request(pred)
 
     return PredictResponseDto(
@@ -101,6 +119,10 @@ def index():
 
 
 if __name__ == '__main__':
+
+    converted_model_predict(
+        np.random.rand(400, 921, 3)
+    )
 
     uvicorn.run(
         'api:app',

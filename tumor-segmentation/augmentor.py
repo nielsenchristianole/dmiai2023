@@ -181,31 +181,46 @@ class ImagePreprocessor:
     
     def _resize_and_pad(self, image, label):
 
-        h, w = np.array(image).shape[:2]
-        max_size = max(h, w)
-        pad_h = (max_size - h) // 2
-        pad_w = (max_size - w) // 2
 
-        padded_image = cv2.copyMakeBorder(image, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=(1,1,1))
-        padded_label = cv2.copyMakeBorder(label, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=(0,0,0))
+        # h, w = np.array(image).shape[:2]
+        # max_size = max(h, w)
 
-        resized_image = cv2.resize(padded_image, (self.image_size, self.image_size))
-        resized_label = cv2.resize(padded_label, (self.image_size, self.image_size))
+        # # remember not all images have even numbered dimensions
+        # top = (max_size - h) // 2
+        # bottom = (max_size - h) - top
+        # left = (max_size - w) // 2
+        # right = (max_size - w) - left
+
+        # padded_image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(1,1,1))
+        # padded_label = cv2.copyMakeBorder(label, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(0,0,0))
+
+        padded_image = image
+        padded_label = label
+
+        resized_image = cv2.resize(padded_image, (self.image_size, self.image_size), interpolation=cv2.INTER_NEAREST)
+        resized_label = cv2.resize(padded_label, (self.image_size, self.image_size), interpolation=cv2.INTER_NEAREST)
 
         return resized_image, resized_label
     
-def postprocessor(img, original_size):
+def postprocessor(img: np.ndarray, original_size):
 
-    h_o, w_o = original_size
+    original_height, original_width = original_size
 
-    o_max_size = max(h_o, w_o)
-    o_pad_h = (o_max_size - h_o) // 2
-    o_pad_w = (o_max_size - w_o) // 2
+    img = cv2.resize(img.astype(np.uint8), (original_width, original_height), interpolation=cv2.INTER_NEAREST)
+    # original_square_side_length = max(original_height, original_width)
 
-    img = cv2.resize(img, (max(h_o, w_o), max(h_o, w_o)))
+    # horizontal_pad = (original_square_side_length - original_width)
+    # vertical_pad = (original_square_side_length - original_height)
 
-    img = img[o_pad_w:o_pad_w+w_o, o_pad_h:o_pad_h+h_o]
+    # top = vertical_pad // 2
+    # bottom = vertical_pad - top
+    # left = horizontal_pad // 2
+    # right = horizontal_pad - left
 
+    # img = cv2.resize(img.astype(np.uint8), (original_square_side_length, original_square_side_length), interpolation=cv2.INTER_NEAREST)
+
+    # img = img[top:top+original_height, left:left+original_width]
+    
     return img
 
 def to_grayscale(img):
