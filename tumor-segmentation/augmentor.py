@@ -132,7 +132,7 @@ class Homography:
         return scale_matrix
 
 def random_homography(rot_xyz_range : np.ndarray =
-                        np.array([(-np.pi/4, np.pi/4), (-np.pi/4, np.pi/4), (-np.pi, np.pi)]),
+                        np.array([(-np.pi/6, np.pi/6), (-np.pi/6, np.pi/6), (-np.pi/4, np.pi/4)]),
                       shear_range : np.ndarray = 
                         np.array([(-0.5, 0.5), (-0.5, 0.5)]),
                       scale_range : np.ndarray = 
@@ -260,7 +260,7 @@ class Augmentor:
             return image, label
 
         image, label = self._random_noise(image, label)
-        image, label = self._random_flip(image, label)
+        # image, label = self._random_flip(image, label)
         image, label = self._random_cutout(image, label)
         image, label = self._random_perspective(image, label)
 

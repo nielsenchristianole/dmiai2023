@@ -12,7 +12,7 @@ import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
 
-from models.unet import UNet
+from models.unet_bigger import UNet
 from augmentor import Augmentor, ImagePreprocessor, to_grayscale
 
 
@@ -51,14 +51,14 @@ class PETDataset(Dataset):
             img = plt.imread(self.train_img_path[idx])[:,:,:3]
             label = plt.imread(self.train_label_path[idx])[:,:,:3]
 
-            img, label = self.preprocessor(img,label)
+            # img, label = self.preprocessor(img,label)
 
             img, label = self.augmentor(img, label)
         else:
             img = plt.imread(self.test_img_path[idx])[:,:,:3]
             label = plt.imread(self.test_label_path[idx])[:,:,:3]
 
-            img, label = self.preprocessor(img,label)
+            # img, label = self.preprocessor(img,label)
 
         img = to_grayscale(img)
         label = to_grayscale(label)
@@ -71,7 +71,7 @@ class PETDataset(Dataset):
     def _get_patient_datapath(self, data_path):
 
         img_path = Path(data_path) / "all_images"
-        label_path = Path(data_path) / "all_masks"
+        label_path = Path(data_path) / "all_images"
 
         images = list(img_path.glob("*.png"))
         labels = list(label_path.glob("*.png"))
@@ -112,12 +112,12 @@ if __name__ == "__main__":
     # VERY IMPORTANT (ensures same test train split)
     seed = 42
 
-    train_surfix = "1658"
+    train_surfix = "big_images"
 
     # Config for training
     batch_size = 4
     train_test_split = 0.8
-    pretrained = None#"unet_pet_segmentation_best.pth"
+    pretrained = None#"unet_pet_segmentation_1658_best_1.pth"
     lr = 1e-3
     epochs = 100
 
@@ -137,18 +137,9 @@ if __name__ == "__main__":
 
 
     if pretrained is not None:
+        # Loading pretrained weights
+        print("from pretrained")
         model.load_state_dict(torch.load(pretrained))
-
-    def jaccard_loss(pred, target, smooth = 1.):
-        pred = pred.contiguous()
-        target = target.contiguous()    
-
-        intersection = (pred * target).sum(dim=2).sum(dim=2)
-        union = pred.sum(dim=2).sum(dim=2) + target.sum(dim=2).sum(dim=2) - intersection
-        
-        loss = (1 - ((intersection + smooth) / (union + smooth)))
-        
-        return loss.mean()
 
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -200,7 +191,7 @@ if __name__ == "__main__":
         if np.mean(die) > best_dice:
             best_dice = np.mean(die)
             
-            torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}_best.pth')
+            torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}_best_{np.round(best_dice)}.pth')
 
         print(f'Epoch {epoch+1}, Loss: {train_loss}, Val Loss: {val_loss}, Accuracy: {np.mean(acc)}, Recall: {np.mean(recall)}, Precision: {np.mean(precision)}, Dice: {np.mean(die)}')
 
