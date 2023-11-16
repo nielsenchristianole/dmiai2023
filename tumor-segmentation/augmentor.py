@@ -92,6 +92,11 @@ class Homography:
         c_range_half = (coord.max() - coord.min())/2
         
         return (coord - c_range_half)@self.transform_matrix + self.shift*c_range_half + c_range_half
+    
+    def inverse_transform(self, coord) -> np.ndarray:
+        c_range_half = (coord.max() - coord.min())/2
+        
+        return (coord - c_range_half - self.shift*c_range_half)@np.linalg.inv(self.transform_matrix) + c_range_half
 
     def _get_rot_matrix(self, rot_xyz : np.ndarray) -> np.ndarray:
         
@@ -144,7 +149,7 @@ def random_homography(rot_xyz_range : np.ndarray =
 
 
 def perspective_transform(image : np.ndarray,
-                          label : np.ndarray,
+                          label : np.ndarray = None,
                           fill : list[tuple] = None):
 
     homographies = random_homography()
@@ -160,12 +165,14 @@ def perspective_transform(image : np.ndarray,
                                                                 corners.tolist(),
                                                                 corners_new.tolist(),
                                                                 fill = (1,1,1)).permute(1,2,0).numpy()
-    label = torchvision.transforms.functional.perspective(torch.tensor(label).permute(2,0,1),
-                                                                corners.tolist(),
-                                                                corners_new.tolist(),
-                                                                fill = (0,0,0)).permute(1,2,0).numpy()
+    if label is not None:
+        label = torchvision.transforms.functional.perspective(torch.tensor(label).permute(2,0,1),
+                                                                    corners.tolist(),
+                                                                    corners_new.tolist(),
+                                                                    fill = (0,0,0)).permute(1,2,0).numpy()
 
-    return image, label
+    return image, label, corners_new
+
     
 class ImagePreprocessor:
 
@@ -180,7 +187,6 @@ class ImagePreprocessor:
         return image, label
     
     def _resize_and_pad(self, image, label):
-
 
         # h, w = np.array(image).shape[:2]
         # max_size = max(h, w)
@@ -301,8 +307,10 @@ class Augmentor:
         
         if random.random() > self.perspective_prop:
             return image, label
+        
+        image, label, _ = perspective_transform(image, label)
 
-        return perspective_transform(image, label)
+        return image, label
 
     def _random_noise(self, image, label):
 
