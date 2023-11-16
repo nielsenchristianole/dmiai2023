@@ -172,3 +172,4 @@ deployments/
 Dockerfile
 
 data/
+*.pth
