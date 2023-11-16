@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../../Champ_AI/DM-i-AI-2023/tumor-segmentation/data_preparation"
+		}
+	],
+	"settings": {}
+}

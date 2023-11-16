@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,10 +54,10 @@ class PETDataset(Dataset):
 
             img, label = self.augmentor(img, label)
         else:
+            img, label = self.preprocessor(img,label)
+
             img = plt.imread(self.test_img_path[idx])[:,:,:3]
             label = plt.imread(self.test_label_path[idx])[:,:,:3]
-
-            img, label = self.preprocessor(img,label)
 
         img = to_grayscale(img)
         label = to_grayscale(label)
@@ -80,8 +79,6 @@ class PETDataset(Dataset):
 
         train_idx = np.random.choice(num_images, int(num_images*self.train_test_split), replace = False)
         test_idx = np.setdiff1d(np.arange(num_images), train_idx)
-
-        print(test_idx)
 
         train_paths = [images[i] for i in train_idx]
         train_labels = [labels[i] for i in train_idx]
@@ -110,20 +107,12 @@ def set_seed(seed):
 if __name__ == "__main__":
 
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # VERY IMPORTANT (ensures same test train split)
     seed = 42
-
-    train_surfix = "1658"
-
-    # Config for training
     batch_size = 4
     train_test_split = 0.8
-    pretrained = None#"unet_pet_segmentation_best.pth"
+    pretrained = None
     lr = 1e-3
     epochs = 100
-
-    ### DO NOT EDIT BELOW ###
 
     best_dice = 0
 
@@ -136,7 +125,6 @@ if __name__ == "__main__":
 
     #training
     model = UNet(device = DEVICE)
-
 
     if pretrained is not None:
         model.load_state_dict(torch.load(pretrained))
@@ -201,9 +189,8 @@ if __name__ == "__main__":
 
         if np.mean(die) > best_dice:
             best_dice = np.mean(die)
-            
-            torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}_best.pth')
+            torch.save(model.state_dict(), 'unet_pet_segmentation_best.pth')
 
         print(f'Epoch {epoch+1}, Loss: {train_loss}, Val Loss: {val_loss}, Accuracy: {np.mean(acc)}, Recall: {np.mean(recall)}, Precision: {np.mean(precision)}, Dice: {np.mean(die)}')
 
-    torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}.pth')
+    torch.save(model.state_dict(), 'unet_pet_segmentation.pth')
