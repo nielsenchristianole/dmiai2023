@@ -4,13 +4,13 @@ import tqdm
 import wandb
 import numpy as np
 import matplotlib.pyplot as plt
+from utils import dice_score as dice
 from sklearn.metrics import accuracy_score, recall_score, precision_score
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
 from augmentor import Augmentor, ImagePreProcessor
@@ -71,7 +71,7 @@ class PETDataset(Dataset):
         label = label@np.array([0.299,0.587,0.114])
 
         img = torch.tensor(img, dtype = torch.float32)[None,:]
-        mask = torch.tensor(label[:,:]/255, dtype = torch.float32)[None,:]
+        mask = torch.tensor(label > 0, dtype = torch.float32)[None,:]
 
         return img, mask
 
@@ -93,14 +93,16 @@ class PETDataset(Dataset):
         test_labels = [label_path / f"segmentation_{i:03d}.png" for i in test_idx]
 
         return train_paths, train_labels, test_paths, test_labels
+    
+def dice_loss(pred, target, smooth = 1.):
+    pred = pred.contiguous()
+    target = target.contiguous()    
 
-batch_size = 4
-train_test_split = 0.8
-
-dataset = PETDataset('data/patients', train_test_split=train_test_split)
-
-train_loader = DataLoader(dataset(is_train = True), batch_size = batch_size)
-val_loader = DataLoader(dataset(is_train = False), batch_size = batch_size)
+    intersection = (pred * target).sum(dim=2).sum(dim=2)
+    
+    loss = (1 - ((2. * intersection + smooth) / (pred.sum(dim=2).sum(dim=2) + target.sum(dim=2).sum(dim=2) + smooth)))
+    
+    return loss.mean()
 
 
 #U-Net model definition
@@ -157,10 +159,20 @@ class UNet(nn.Module):
 
         logits = self.outc(x)
         return logits
+    
+
+batch_size = 4
+train_test_split = 0.8
+
+dataset = PETDataset('data/patients', train_test_split=train_test_split)
+
+train_loader = DataLoader(dataset(is_train = True), batch_size = batch_size)
+val_loader = DataLoader(dataset(is_train = False), batch_size = batch_size)
+
 
 #training
 model = UNet().to(DEVICE)
-criterion = nn.BCEWithLogitsLoss()
+criterion = dice_loss #nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
 for epoch in tqdm.trange(50):
@@ -185,7 +197,7 @@ for epoch in tqdm.trange(50):
     # Rozpoczęcie walidacji
     model.eval()
     val_loss = 0.0
-    acc, recall, precision = [], [], []
+    die, acc, recall, precision = [], [], [], []
 
     with torch.no_grad():
         for val_images, val_masks in val_loader:
@@ -200,7 +212,8 @@ for epoch in tqdm.trange(50):
             val_outputs = val_outputs > 0.5
             val_outputs = val_outputs.float()
 
-            acc.append(accuracy_score(val_masks.cpu().flatten().int(), val_outputs.cpu().flatten().int()))
+            die.append(dice(val_masks.cpu().flatten(), val_outputs.cpu().flatten()))
+            acc.append(accuracy_score(val_masks.cpu().flatten(), val_outputs.cpu().flatten()))
             recall.append(recall_score(val_masks.cpu().flatten().int(), val_outputs.cpu().flatten().int()))
             precision.append(precision_score(val_masks.cpu().flatten().int(), val_outputs.cpu().flatten().int()))
 
@@ -216,7 +229,7 @@ for epoch in tqdm.trange(50):
     #     "precision": np.mean(precision)
     # })
 
-    print(f'Epoch {epoch+1}, Loss: {train_loss}, Val Loss: {val_loss}, Accuracy: {np.mean(acc)}, Recall: {np.mean(recall)}, Precision: {np.mean(precision)}')
+    print(f'Epoch {epoch+1}, Loss: {train_loss}, Val Loss: {val_loss}, Accuracy: {np.mean(acc)}, Recall: {np.mean(recall)}, Precision: {np.mean(precision)}, Dice: {np.mean(die)}')
 
 torch.save(model.state_dict(), 'unet_pet_segmentation.pth')
 
