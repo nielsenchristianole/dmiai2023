@@ -1,0 +1,148 @@
+{
+    "os": "Linux-5.15.90.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+    "python": "3.9.18",
+    "heartbeatAt": "2023-11-15T21:15:18.605741",
+    "startedAt": "2023-11-15T21:15:18.269964",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/root/documents/dmiai2023/tumor-segmentation/train.py",
+    "codePathLocal": "train.py",
+    "codePath": "tumor-segmentation/train.py",
+    "git": {
+        "remote": "https://github.com/nielsenchristianole/dmiai2023.git",
+        "commit": "3397f8e15122760fdc54b58d2ac3f295a3bc6af1"
+    },
+    "email": null,
+    "root": "/root/documents/dmiai2023",
+    "host": "workpc",
+    "username": "root",
+    "executable": "/root/miniconda3/envs/tumor_detection/bin/python",
+    "cpu_count": 10,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2918.3980000000006,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2918.398,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 1006.853931427002,
+            "used": 109.75226211547852
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "memory_total": 8585740288
+        }
+    ],
+    "memory": {
+        "total": 7.623359680175781
+    }
+}
