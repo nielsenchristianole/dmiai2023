@@ -84,8 +84,7 @@ model.load_state_dict(
 # )
 
 
-def converted_model_predict(in_img: np.ndarray):
-    in_shape = in_img.shape
+def converted_model_predict(in_img: np.ndarray) -> np.ndarray:
 
     pred = model.predict(in_img)
 
