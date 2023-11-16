@@ -170,3 +170,5 @@ docker-compose.dev.yml
 emily-config.json
 deployments/
 Dockerfile
+
+data/

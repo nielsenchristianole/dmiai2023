@@ -17,6 +17,8 @@ import os
 from utils import encode_request, decode_request
 from models.dtos import PredictRequestDto, PredictResponseDto
 from model.baseline_model import BaselineModel
+from models.unet import UNet
+import torch
 
 
 SAVE_INPUT_DATA = False
@@ -53,6 +55,25 @@ def baseline_predict(request: PredictRequestDto):
         Image.fromarray(img).save(save_path)
 
     pred = baseline_model.predict(img)
+    encoded_img = encode_request(pred)
+
+    return PredictResponseDto(
+        img=encoded_img
+    )
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+model_path = 'unet_pet_segmentation_best.pth'
+
+model = UNet(device = DEVICE)
+model.load_state_dict(torch.load('./data/weights/unet.pth'))
+
+@app.post('/model/predict')
+def predict(request: PredictRequestDto):
+
+    img = decode_request(request)
+
+    pred = model.predict(img)
     encoded_img = encode_request(pred)
 
     return PredictResponseDto(

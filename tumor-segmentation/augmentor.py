@@ -159,7 +159,7 @@ def perspective_transform(image : np.ndarray,
     image = torchvision.transforms.functional.perspective(torch.tensor(image).permute(2,0,1),
                                                                 corners.tolist(),
                                                                 corners_new.tolist(),
-                                                                fill = (255,255,255)).permute(1,2,0).numpy()
+                                                                fill = (1,1,1)).permute(1,2,0).numpy()
     label = torchvision.transforms.functional.perspective(torch.tensor(label).permute(2,0,1),
                                                                 corners.tolist(),
                                                                 corners_new.tolist(),
@@ -167,42 +167,51 @@ def perspective_transform(image : np.ndarray,
 
     return image, label
     
-class ImagePreProcessor:
+class ImagePreprocessor:
 
     def __init__(self, image_size = 512):
 
         self.image_size = image_size
 
-    def __call__(self, images, labels):
+    def __call__(self, image, label):
 
-        images, labels = self._resize_and_pad(images, labels)
+        image, label = self._resize_and_pad(image, label)
 
-        return images, labels
+        return image, label
     
-    def _resize_and_pad(self, images, labels):
-        # Scale the images and labels in a batch fashion where the final result should be a self.image_size x self.image_size picture. Do not change aspect ration. Instead pad with black
-        
-        padded_images = []
-        padded_labels = []
-        for image, label in zip(images, labels):
-            h, w = image.shape[:2]
-            max_size = max(h, w)
-            pad_h = (max_size - h) // 2
-            pad_w = (max_size - w) // 2
+    def _resize_and_pad(self, image, label):
 
-            padded_image = cv2.copyMakeBorder(image, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=(255,255,255))
-            padded_label = cv2.copyMakeBorder(label, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=(0,0,0))
-            padded_images.append(padded_image)
-            padded_labels.append(padded_label)
+        h, w = np.array(image).shape[:2]
+        max_size = max(h, w)
+        pad_h = (max_size - h) // 2
+        pad_w = (max_size - w) // 2
 
-        resized_images = []
-        resized_labels = []
-        for image, label in zip(padded_images, padded_labels):
-            resized_image = cv2.resize(image, (self.image_size, self.image_size))
-            resized_label = cv2.resize(label, (self.image_size, self.image_size))
-            resized_images.append(resized_image)
-            resized_labels.append(resized_label)
-        return resized_images, resized_labels
+        padded_image = cv2.copyMakeBorder(image, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=(1,1,1))
+        padded_label = cv2.copyMakeBorder(label, pad_h, pad_h, pad_w, pad_w, cv2.BORDER_CONSTANT, value=(0,0,0))
+
+        resized_image = cv2.resize(padded_image, (self.image_size, self.image_size))
+        resized_label = cv2.resize(padded_label, (self.image_size, self.image_size))
+
+        return resized_image, resized_label
+    
+def postprocessor(img, original_size):
+
+    h_o, w_o = original_size
+
+    o_max_size = max(h_o, w_o)
+    o_pad_h = (o_max_size - h_o) // 2
+    o_pad_w = (o_max_size - w_o) // 2
+
+    img = cv2.resize(img, (max(h_o, w_o), max(h_o, w_o)))
+
+    img = img[o_pad_w:o_pad_w+w_o, o_pad_h:o_pad_h+h_o]
+
+    return img
+
+def to_grayscale(img):
+
+    # Convert img to grayscale
+    return img@np.array([0.299,0.587,0.114])
 
 class Augmentor:
 
@@ -210,7 +219,7 @@ class Augmentor:
                  augment_prop = 0.5,
                  flip_prop = 0.3,
                  noise_prop = 0.6,
-                 noise_amount = 0.2,
+                 noise_amount = 0.1,
                  perspective_prop = 0.6,
                  cutout_param = None):
 
@@ -221,7 +230,7 @@ class Augmentor:
         self.perspective_prop = perspective_prop
 
         if cutout_param == None:
-            cutout_param = {'min_size': 0.1, 'max_size': 0.2, 'n_cutouts': 3, 'cutout_prob': 0.2}
+            cutout_param = {'min_size': 0.1, 'max_size': 0.2, 'n_cutouts': 10, 'cutout_prob': 0.1}
         self.cutout_param = cutout_param # (min_size, max_size, n_cutouts)
 
     def __call__(self, image, label):
@@ -240,7 +249,7 @@ class Augmentor:
 
         if random.random() < self.flip_prop:
             image = cv2.flip(image, 1)
-            image = cv2.flip(label, 1)
+            label = cv2.flip(label, 1)
         if random.random() < self.flip_prop:
             image = cv2.flip(image, 0)
             label = cv2.flip(label, 0)
@@ -263,9 +272,13 @@ class Augmentor:
 
             h = int(h * image.shape[0])
             w = int(w * image.shape[1])
+            x = random.randint(0, image.shape[0] - h)
+            y = random.randint(0, image.shape[1] - w)
 
-            image = cv2.rectangle(image, (h, w), (h + h, w + w), (0,0,0), -1)
-            label = cv2.rectangle(label, (h, w), (h + h, w + w), (0,0,0), -1)
+            image = cv2.rectangle(image*255, (x, y), (x + h, y + w), (255,255,255), -1)
+            label = cv2.rectangle(label*255, (x, y), (x + h, y + w), (0,0,0), -1)
+            image = image/255
+            label = label/255
 
         return image, label
     
