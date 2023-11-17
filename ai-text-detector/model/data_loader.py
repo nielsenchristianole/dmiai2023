@@ -23,7 +23,7 @@ MODEL_DIR = 'model/bert_weights/'
 class BertDataset(Dataset):
     def __init__(
             self,
-            max_length: int = float('inf'),
+            max_length: int = 400,
             data_path: str = DATA_PATH,
             model_dir: str = MODEL_DIR,
             dataset_balance: bool = True
@@ -113,7 +113,7 @@ class ConvertRequest():
 
     def __init__(
             self,
-            max_length: int = float('inf'),
+            max_length: int = 400,
             model_dir: str = MODEL_DIR
         ) -> None:
 
