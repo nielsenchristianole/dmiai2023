@@ -67,7 +67,7 @@ class UNet(nn.Module):
         logits = self.outc(x)
         return logits
     
-    def predict(self, o_img):
+    def predict(self, o_img, threshhold=0.5):
 
         img = self.preprocessor(o_img, o_img)[0]
         img = to_grayscale(img)
@@ -76,7 +76,7 @@ class UNet(nn.Module):
         with torch.no_grad():
             logits = self.forward(img[None,None,:])
             logits = torch.sigmoid(logits[0][0])
-            logits = logits > 0.5
+            logits = logits > threshhold
             logits = logits*255
             logits = logits.cpu().numpy()
             logits = np.stack([logits,logits,logits], axis = -1)

@@ -65,7 +65,14 @@ def baseline_predict(request: PredictRequestDto):
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-model_path = 'unet_pet_segmentation_1658_best_1.pth'
+models2test = [
+    'unet_pet_segmentation_1658_best_1.pth',
+    'unet_pet_segmentation.pth',
+    'unet_pet_segmentation_best.pth',
+]
+
+THRESHHOLD = 0.25
+model_path = models2test[0]
 
 model = BiggerUNet(device = DEVICE)
 model.load_state_dict(
@@ -87,7 +94,7 @@ model.load_state_dict(
 def converted_model_predict(in_img: np.ndarray):
     in_shape = in_img.shape
 
-    pred = model.predict(in_img)
+    pred = model.predict(in_img, threshhold=THRESHHOLD)
 
     return pred
 
