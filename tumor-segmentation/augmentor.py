@@ -210,27 +210,51 @@ class ImagePreprocessor:
         resized_label = cv2.resize(padded_label, (self.image_size, self.image_size), interpolation=cv2.INTER_NEAREST)
 
         return resized_image, resized_label
+
+from PIL import ImageOps, Image
+from PIL.Image import Resampling
+
+def preprocessor(img: np.ndarray):
     
-def postprocessor(img: np.ndarray, original_size):
-
-    original_height, original_width = original_size
-
-    img = cv2.resize(img.astype(np.uint8), (original_width, original_height), interpolation=cv2.INTER_NEAREST)
-    # original_square_side_length = max(original_height, original_width)
-
-    # horizontal_pad = (original_square_side_length - original_width)
-    # vertical_pad = (original_square_side_length - original_height)
-
-    # top = vertical_pad // 2
-    # bottom = vertical_pad - top
-    # left = horizontal_pad // 2
-    # right = horizontal_pad - left
-
-    # img = cv2.resize(img.astype(np.uint8), (original_square_side_length, original_square_side_length), interpolation=cv2.INTER_NEAREST)
-
-    # img = img[top:top+original_height, left:left+original_width]
+    img = Image.fromarray(img)
     
-    return img
+    original_size = img.size
+    delta_width = 400 - original_size[0]    
+
+    top_padding = 1024 - 991
+    bottom_padding = 1024 - original_size[1] - top_padding
+    
+    padding = (delta_width//2, top_padding, delta_width//2, bottom_padding)  # Padding only at the bottom
+
+    img = ImageOps.expand(img, padding, fill=(255,255,255))
+
+    img = img.resize((200, 512), resample = Resampling.LANCZOS)
+
+    return np.array(img)
+
+def postprocessor(label: np.ndarray, original_size):
+
+    if label.dtype != np.uint8:
+        # Convert the numpy array to a supported data type
+        label = label.astype(np.uint8)
+
+    label = Image.fromarray(label)
+
+    label = label.resize((400, 1024), resample = Resampling.NEAREST)
+
+    delta_width = original_size[0] - 400  
+
+    top_padding = 1024 - 991
+    bottom_padding = 1024 - original_size[1] - top_padding
+    
+    if delta_width % 2 == 0:
+        padding = (delta_width//2, top_padding, delta_width//2, bottom_padding)
+    else:
+        padding = (delta_width//2 + 1, top_padding, delta_width//2, bottom_padding)  # Padding only at the bottom
+
+    label = ImageOps.crop(label, padding)
+
+    return np.array(label)
 
 def to_grayscale(img):
 
