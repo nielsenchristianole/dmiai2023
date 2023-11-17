@@ -82,7 +82,7 @@ def get_nearest_neighbor(img: np.ndarray, imgs: dict[int, np.ndarray]) -> int:
     return min_img_key
 
 
-for control_key, control_img in tqdm.tqdm(control_imgs.items(), disable=True):
+for control_key, control_img in tqdm.tqdm(control_imgs.items(), disable=False):
     patient_key = get_nearest_neighbor(control_img, patient_imgs)
     patient_img = patient_imgs[patient_key]
     patient_mask = patient_masks[patient_key]
@@ -99,6 +99,4 @@ for control_key, control_img in tqdm.tqdm(control_imgs.items(), disable=True):
 
     Image.fromarray(synthetic_img.astype(np.uint8)).save(os.path.join(SYNTHETIC_IMG_DIR, f'imgs/patient_{control_key:0>3}.png'))
     Image.fromarray(synthetic_mask.astype(np.uint8)).save(os.path.join(SYNTHETIC_IMG_DIR, f'labels/segmentation_{control_key:0>3}.png'))
-
-    print('saved image with shape', synthetic_img.shape)
     
