@@ -67,8 +67,8 @@ class PETDataset(Dataset):
 
     def _get_patient_datapath(self, data_path):
 
-        img_path = Path(data_path) / "all_images"
-        label_path = Path(data_path) / "all_masks"
+        img_path = Path(data_path) / "imgs"
+        label_path = Path(data_path) / "labels"
 
         images = list(img_path.glob("*.png"))
         labels = list(label_path.glob("*.png"))
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # VERY IMPORTANT (ensures same test train split)
     seed = 42
 
-    train_surfix = "big_images"
+    train_surfix = "data/synthetic"
 
     # Config for training
     batch_size = 4

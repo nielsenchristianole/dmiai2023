@@ -134,7 +134,7 @@ class Homography:
         return scale_matrix
 
 def random_homography(rot_xyz_range : np.ndarray =
-                        np.array([(-np.pi/8, np.pi/8), (-np.pi/8, np.pi/8), (-np.pi/8, np.pi/8)]),
+                        np.array([(-np.pi/6, np.pi/6), (-np.pi/6, np.pi/6), (-np.pi/8, np.pi/8)]),
                       shear_range : np.ndarray = 
                         np.array([(-0.3, 0.3), (-0.3, 0.3)]),
                       scale_range : np.ndarray = 
