@@ -3,7 +3,7 @@ import torch.nn as nn
 
 import numpy as np
 
-from augmentor import ImagePreprocessor, postprocessor, to_grayscale
+from augmentor import postprocessor, to_grayscale, preprocessor
 
 #U-Net model definition
 class DoubleConv(nn.Module):
@@ -27,8 +27,6 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
 
         self.DEVICE = device
-
-        self.preprocessor = ImagePreprocessor()
 
         self.down1 = DoubleConv(in_channels, 64)
         self.down2 = DoubleConv(64, 128)
@@ -76,7 +74,7 @@ class UNet(nn.Module):
     
     def predict(self, o_img):
 
-        img = self.preprocessor(o_img, o_img)[0]
+        img = preprocessor(o_img)
         img = to_grayscale(img)
         img = torch.tensor(img, dtype=torch.float32, device = self.DEVICE)
 
