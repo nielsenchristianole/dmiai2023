@@ -71,7 +71,7 @@ class PETDataset(Dataset):
     def _get_patient_datapath(self, data_path):
 
         img_path = Path(data_path) / "all_images"
-        label_path = Path(data_path) / "all_images"
+        label_path = Path(data_path) / "all_masks"
 
         images = list(img_path.glob("*.png"))
         labels = list(label_path.glob("*.png"))
@@ -115,15 +115,15 @@ if __name__ == "__main__":
     train_surfix = "big_images"
 
     # Config for training
-    batch_size = 4
-    train_test_split = 0.8
-    pretrained = None#"unet_pet_segmentation_1658_best_1.pth"
+    batch_size = 6
+    train_test_split = 0.9
+    pretrained = "unet_pet_segmentation_1658_best_1.pth"
     lr = 1e-3
     epochs = 100
 
     ### DO NOT EDIT BELOW ###
 
-    best_dice = 0
+    best_dice = 0.5
 
     set_seed(seed)
 
@@ -188,7 +188,7 @@ if __name__ == "__main__":
         val_loss /= len(val_loader)
 
 
-        if np.mean(die) > best_dice:
+        if np.mean(die) > best_dice*1.005:
             best_dice = np.mean(die)
             
             torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}_best_{np.round(best_dice)}.pth')
