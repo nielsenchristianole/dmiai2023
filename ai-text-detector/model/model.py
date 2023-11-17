@@ -24,15 +24,19 @@ class BERTClassifier(torch.nn.Module):
             model_dir: str=MODEL_DIR,
             dropout: float=0.,
             *,
-            download_weights: bool=False
+            download_weights: bool=False,
+            device: torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         ):
         super(BERTClassifier, self).__init__()
+
+        self.device = device
+
         if download_weights:
             self.bert = transformers.BertModel.from_pretrained(
                 "Maltehb/danish-bert-botxo",
                 cache_dir=model_dir,
                 torchscript=True
-            )
+            ).to(self.device)
         else:
             config = transformers.PretrainedConfig.from_pretrained(
                 "Maltehb/danish-bert-botxo",
@@ -40,16 +44,29 @@ class BERTClassifier(torch.nn.Module):
             )
             self.bert = transformers.BertModel(
                 config=config
-            )
+            ).to(self.device)
         self.dense = nn.Sequential(
             nn.Linear(768, 512),
             nn.Dropout(dropout),
             nn.ReLU(),
             nn.Linear(512, 1)
-        )
+        ).to(self.device)
         self.sigmoid = nn.Sigmoid()
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    def get_bert_encodings(
+        self,
+        ids: torch.Tensor,
+        mask: torch.Tensor,
+        token_type_ids: torch.Tensor
+    ) -> torch.Tensor:
+        _, x = self.bert(
+            ids.to(self.device),
+            attention_mask=mask.to(self.device),
+            token_type_ids=token_type_ids.to(self.device),
+            return_dict=False
+        )
+        return x
 
     def forward(
             self,
@@ -57,13 +74,7 @@ class BERTClassifier(torch.nn.Module):
             mask: torch.Tensor,
             token_type_ids: torch.Tensor
         ) -> torch.Tensor:
-
-        _, x = self.bert(
-            ids.to(self.device),
-            attention_mask=mask.to(self.device),
-            token_type_ids=token_type_ids.to(self.device),
-            return_dict=False
-        )
+        x = self.get_bert_encodings(ids=ids, mask=mask, token_type_ids=token_type_ids)
         x = self.dense(x)
         return x
     

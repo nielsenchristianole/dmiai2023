@@ -37,17 +37,8 @@ SCRAPING_DIR = './data_scraping/'
 os.makedirs(COM_IN_PATH, exist_ok=True)
 os.makedirs(COM_OUT_PATH, exist_ok=True)
 
-text_classifier = BERTClassifier(download_weights=False)
-text_classifier.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, map_location=torch.device('cpu')))
-text_classifier.eval()
-
-request_converter = ConvertRequest(64)
-
 
 app = FastAPI()
-
-log_format = "<level>{level: <8}</level> | <b>{message}</b> | {file}"
-logger.add(LOG_DISTINATION, colorize=False, format=log_format, enqueue=True)
 
 
 initialize_logging()
@@ -65,37 +56,8 @@ app.add_middleware(
 app.include_router(router.router, tags=['AI Text Detector'])
 
 
-@app.post('/bert/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
-
-    batch_size = 64
-    num_answers = len(request.answers)
-    idxs = list(range(0, num_answers, batch_size)) + [num_answers]
-
-    logger.info(f"{num_answers} answers on {len(idxs) - 1} baches")
-
-    output = []
-    for pred_num, (i0, i1) in enumerate(zip(idxs[:-1], idxs[1:]), start=1):
-        logger.info(f"pred {pred_num}/{len(idxs)-1}")
-
-        model_input = request_converter(request=request.answers[i0:i1])
-        preds = text_classifier.predict(**model_input)
-        preds = preds.cpu().squeeze().detach().numpy().tolist()
-        
-        if isinstance(preds, list):
-            output.extend(preds)
-        else:
-            output.append(preds)
-            preds = [preds]
-
-    logger.info(f"Completed with {len(output)} preds")
-    return PredictResponseDto(
-        class_ids=output
-    )
-
-
 @app.post('/gpu_bert/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
+def gpu_bert_predict(request: PredictRequestDto):
 
     with open(COM_IN_PATH + 'request.txt', 'w') as f:
         f.write(COM_SPLIT.join(request.answers))
@@ -118,8 +80,31 @@ def predict(request: PredictRequestDto):
     )
 
 
+from token_naive_bayes.sklearn import NaiveBayesTFiDF
+from sklearn.naive_bayes import MultinomialNB
+
+data_path = './data/labelled_validation_data.tsv'
+df = pd.read_csv(data_path, sep='\t')
+
+x_data_raw = df['text'].to_numpy()
+y_data = df['is_generated'].to_numpy()
+
+naive_bayes_TFiDF = NaiveBayesTFiDF()
+naive_bayes_TFiDF.fit(x_data_raw, y_data)
+
+
+@app.post('/naive_bayes/predict', response_model=PredictResponseDto)
+def naive_bayes_predict(request: PredictRequestDto):
+
+    preds = naive_bayes_TFiDF.predict(np.array(request.answers))
+
+    return PredictResponseDto(
+        class_ids=preds.tolist()
+    )
+
+
 @app.post('/save/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
+def save_predict(request: PredictRequestDto):
 
     df = pd.DataFrame(request.answers)
     df.to_csv(INPUT_SAVE_PATH, sep='\t', index=False)
@@ -130,24 +115,8 @@ def predict(request: PredictRequestDto):
     )
 
 
-@app.post('/guess_true/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
-
-    return PredictResponseDto(
-        class_ids=len(request.answers) * [1]
-    )
-
-
-@app.post('/guess_false/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
-
-    return PredictResponseDto(
-        class_ids=len(request.answers) * [0]
-    )
-
-
 @app.post('/bad/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
+def bad_predict(request: PredictRequestDto):
 
     answer = (1 - np.array(
         [0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1],
@@ -156,21 +125,6 @@ def predict(request: PredictRequestDto):
 
     return PredictResponseDto(
         class_ids=answer
-    )
-
-
-@app.post('/in_method/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
-    
-    char = '\n'
-
-    class_ids = len(request.answers) * [None]
-
-    for idx, text in enumerate(request.answers):
-        class_ids[idx] = int(char in text)
-
-    return PredictResponseDto(
-        class_ids=class_ids
     )
 
 
@@ -197,7 +151,7 @@ global SCRAPE_ANSWER
 SCRAPE_ANSWER: np.ndarray = None
 
 @app.post('/scape_worker/predict', response_model=PredictResponseDto)
-def predict(request: PredictRequestDto):
+def scrape_worker(request: PredictRequestDto):
     
     global SCRAPE_ANSWER
 
