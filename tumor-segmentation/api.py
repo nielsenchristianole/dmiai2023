@@ -65,9 +65,9 @@ def baseline_predict(request: PredictRequestDto):
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-model_path = 'unet_pet_segmentation_1658_best_1.pth'
+model_path = 'unet_models/unet_pet_segmentation_last_minute_2_with_synthetic.pth'
 
-model = BiggerUNet(device = DEVICE)
+model = UNet(device = DEVICE)
 model.load_state_dict(
     torch.load(
         model_path,
@@ -86,7 +86,7 @@ model.load_state_dict(
 
 def converted_model_predict(in_img: np.ndarray) -> np.ndarray:
 
-    pred = model.predict(in_img)
+    pred = model.predict(in_img, threshold=0.1)
 
     return pred
 
@@ -94,7 +94,6 @@ def converted_model_predict(in_img: np.ndarray) -> np.ndarray:
 
 @app.post('/model/predict')
 def model_predict(request: PredictRequestDto):
-    print('got request')
 
     img = decode_request(request)
     pred = converted_model_predict(img)
@@ -126,7 +125,9 @@ def index():
 
 if __name__ == '__main__':
 
+
     input_img = np.random.rand(400, 921, 3)
+    input_img = np.array(Image.open('./data/validation_set/validation_0000.png'))
     prediction = converted_model_predict(
         input_img
     )

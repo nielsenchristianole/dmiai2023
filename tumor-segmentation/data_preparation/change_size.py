@@ -7,8 +7,8 @@ img_folder = 'data/patients/imgs'
 label_folder = 'data/patients/labels'
 
 # Folders for padded images and labels
-padded_img_folder = 'data/resized_imgs'
-padded_label_folder = 'data/resized_labels'
+padded_img_folder = 'data/training_data/imgs'
+padded_label_folder = 'data/training_data/labels'
 
 # Create the directories if they don't exist
 os.makedirs(padded_img_folder, exist_ok=True)

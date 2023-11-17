@@ -5,15 +5,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils import dice_score as dice
 from sklearn.metrics import accuracy_score, recall_score, precision_score
-
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader
+from torchvision.ops import distance_box_iou_loss, focal_loss, sigmoid_focal_loss
+
 
 from models.unet import UNet
 from augmentor import Augmentor, ImagePreprocessor, to_grayscale
+
+
+os.makedirs('unet_models', exist_ok=True)
 
 
 class PETDataset(Dataset):
@@ -73,6 +78,11 @@ class PETDataset(Dataset):
         images = list(img_path.glob("*.png"))
         labels = list(label_path.glob("*.png"))
 
+        use_synthetic = True
+        if not use_synthetic:
+            images = [p for p in images if "synthetic" not in str(p)]
+            labels = [p for p in labels if "synthetic" not in str(p)]
+
         num_images = len(images)
 
         train_idx = np.random.choice(num_images, int(num_images*self.train_test_split), replace = False)
@@ -111,7 +121,7 @@ if __name__ == "__main__":
     # VERY IMPORTANT (ensures same test train split)
     seed = 42
 
-    train_surfix = "last_minute"
+    train_surfix = "last_minute_2_with_synthetic"
 
     # Config for training
     batch_size = 4
@@ -122,11 +132,11 @@ if __name__ == "__main__":
 
     ### DO NOT EDIT BELOW ###
 
-    best_dice = 0.5
+    best_dice = 0.3
 
     set_seed(seed)
 
-    dataset = PETDataset('data/synthetic', train_test_split=train_test_split)
+    dataset = PETDataset('data/training_data', train_test_split=train_test_split)
 
     train_loader = DataLoader(dataset(is_train = True), batch_size = batch_size)
     val_loader = DataLoader(dataset(is_train = False), batch_size = batch_size)
@@ -140,58 +150,62 @@ if __name__ == "__main__":
         print("from pretrained")
         model.load_state_dict(torch.load(pretrained))
 
-    criterion = nn.BCEWithLogitsLoss()
+    # criterion = lambda x, y: sigmoid_focal_loss(x, y, reduction='mean')
+    # criterion = lambda x, y: dice_loss(x, y) + sigmoid_focal_loss(x, y, reduction='mean')
+    # criterion = lambda x, y: dice_loss(x, y)
+    criterion = nn.BCEWithLogitsLoss().to(DEVICE)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    try:
+        for epoch in tqdm.trange(epochs):
+            model.train()
+            train_loss = 0.0
 
-    for epoch in tqdm.trange(epochs):
-        model.train()
-        train_loss = 0.0
+            train_pbar = tqdm.tqdm(train_loader, leave = False)
 
-        train_pbar = tqdm.tqdm(train_loader, leave = False)
+            #training loop code
+            for images, masks in train_pbar:
+                images = images.to(DEVICE)
+                masks = masks.to(DEVICE)
+                optimizer.zero_grad()
+                outputs = model(images)
+                loss = criterion(outputs, masks)
+                loss.backward()
+                optimizer.step()
+                train_loss += loss.item()
 
-        #training loop code
-        for images, masks in train_pbar:
-            images = images.to(DEVICE)
-            masks = masks.to(DEVICE)
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, masks)
-            loss.backward()
-            optimizer.step()
-            train_loss += loss.item()
+            train_loss /= len(train_loader)
+            model.eval()
+            val_loss = 0.0
+            die, acc, recall, precision = [], [], [], []
 
-        train_loss /= len(train_loader)
-        model.eval()
-        val_loss = 0.0
-        die, acc, recall, precision = [], [], [], []
+            with torch.no_grad():
+                for val_images, val_masks in val_loader:
+                    val_images = val_images.to(DEVICE)
+                    val_masks = val_masks.to(DEVICE)
 
-        with torch.no_grad():
-            for val_images, val_masks in val_loader:
-                val_images = val_images.to(DEVICE)
-                val_masks = val_masks.to(DEVICE)
+                    val_outputs = model(val_images)
+                    v_loss = criterion(val_outputs, val_masks)
+                    val_loss += v_loss.item()
 
-                val_outputs = model(val_images)
-                v_loss = criterion(val_outputs, val_masks)
-                val_loss += v_loss.item()
+                    val_outputs = torch.sigmoid(val_outputs)
+                    val_outputs = val_outputs > 0.5
+                    val_outputs = val_outputs.float()
 
-                val_outputs = torch.sigmoid(val_outputs)
-                val_outputs = val_outputs > 0.5
-                val_outputs = val_outputs.float()
+                    die.append(dice(val_masks.cpu().flatten(), val_outputs.cpu().flatten()))
+                    acc.append(accuracy_score(val_masks.cpu().flatten(), val_outputs.cpu().flatten()))
+                    recall.append(recall_score(val_masks.cpu().flatten().int(), val_outputs.cpu().flatten().int()))
 
-                die.append(dice(val_masks.cpu().flatten(), val_outputs.cpu().flatten()))
-                acc.append(accuracy_score(val_masks.cpu().flatten(), val_outputs.cpu().flatten()))
-                recall.append(recall_score(val_masks.cpu().flatten().int(), val_outputs.cpu().flatten().int()))
-                precision.append(precision_score(val_masks.cpu().flatten().int(), val_outputs.cpu().flatten().int()))
-
-        val_loss /= len(val_loader)
+            val_loss /= len(val_loader)
 
 
-        if np.mean(die) > best_dice*1.005:
-            best_dice = np.mean(die)
-            
-            torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}_best_{np.round(best_dice,2)}.pth')
+            if np.mean(die) > best_dice*1.05:
+                best_dice = np.mean(die)
+                
+                torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}_best_{np.round(best_dice,2)}.pth')
 
-        print(f'Epoch {epoch+1}, Loss: {train_loss}, Val Loss: {val_loss}, Accuracy: {np.mean(acc)}, Recall: {np.mean(recall)}, Precision: {np.mean(precision)}, Dice: {np.mean(die)}')
-
-    torch.save(model.state_dict(), f'unet_pet_segmentation_{train_surfix}.pth')
+            print(f'Epoch {epoch+1}, Loss: {train_loss}, Val Loss: {val_loss}, Accuracy: {np.mean(acc)}, Recall: {np.mean(recall)}, Precision: {np.mean(precision)}, Dice: {np.mean(die)}')
+    except KeyboardInterrupt:
+        print("Keyboard interrupt")
+    
+    torch.save(model.state_dict(), f'unet_models/unet_pet_segmentation_{train_surfix}.pth')

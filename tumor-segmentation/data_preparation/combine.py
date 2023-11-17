@@ -21,8 +21,8 @@ def rename_files_in_folder(folder, old_str, new_str):
             os.rename(os.path.join(folder, file_name), os.path.join(folder, new_file_name))
 
 # Define your folder paths here
-image_folders = ['data/resized_imgs', 'data/resized_synthetic_imgs']
-mask_folders = ['data/resized_labels', 'data/resized_synthetic_masks']
+image_folders = ['data/resized_imgs', 'data/synthetic/imgs']
+mask_folders = ['data/resized_labels', 'data/synthetic/masks']
 merged_image_folder = 'data/all_images'
 merged_mask_folder = 'data/all_masks'
 

@@ -217,8 +217,8 @@ from PIL.Image import Resampling
 def preprocessor(img: np.ndarray):
     
     img = Image.fromarray(img)
-    
-    original_size = img.size
+    # img.save('./debug/pre_from_raw.png')
+    width, height = original_size = img.size
     delta_width = 400 - original_size[0]    
 
     top_padding = 1024 - 991
@@ -228,7 +228,11 @@ def preprocessor(img: np.ndarray):
 
     img = ImageOps.expand(img, padding, fill=(255,255,255))
 
+    # img.save('./debug/pre_after_padding.png')
+
     img = img.resize((200, 512), resample = Resampling.LANCZOS)
+
+    # img.save('./debug/pre_after_resizing.png')
 
     return np.array(img)
 
@@ -240,19 +244,22 @@ def postprocessor(label: np.ndarray, original_size):
 
     label = Image.fromarray(label)
 
+    # label.save('./debug/post_from_raw.png')
+
     label = label.resize((400, 1024), resample = Resampling.NEAREST)
 
-    delta_width = original_size[0] - 400  
+    # label.save('./debug/post_after_resizing.png')
 
     top_padding = 1024 - 991
-    bottom_padding = 1024 - original_size[1] - top_padding
+    bottom_padding = 1024 - original_size[0] - top_padding
     
-    if delta_width % 2 == 0:
-        padding = (delta_width//2, top_padding, delta_width//2, bottom_padding)
-    else:
-        padding = (delta_width//2 + 1, top_padding, delta_width//2, bottom_padding)  # Padding only at the bottom
-
+    padding = (0, top_padding, 0, bottom_padding)
+    # padding = (1, 2, 3, 4)
+    # print(label.size, padding)
     label = ImageOps.crop(label, padding)
+    # print(label.size)
+
+    # label.save('./debug/post_after_cropping.png')
 
     return np.array(label)
 
