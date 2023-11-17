@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # VERY IMPORTANT (ensures same test train split)
     seed = 42
 
-    train_surfix = "data/synthetic"
+    train_surfix = "last_minute"
 
     # Config for training
     batch_size = 4
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     set_seed(seed)
 
-    dataset = PETDataset('data', train_test_split=train_test_split)
+    dataset = PETDataset('data/synthetic', train_test_split=train_test_split)
 
     train_loader = DataLoader(dataset(is_train = True), batch_size = batch_size)
     val_loader = DataLoader(dataset(is_train = False), batch_size = batch_size)
